@@ -37,6 +37,7 @@
 	export let imageGenerationEnabled = false;
 	export let codeInterpreterEnabled = false;
 	export let webSearchEnabled = false;
+	export let previewModeEnabled = false;
 
 	let models = [];
 

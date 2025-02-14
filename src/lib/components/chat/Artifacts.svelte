@@ -120,10 +120,11 @@
 			}
 		});
 
-		if (contents.length === 0) {
-			showControls.set(false);
-			showArtifacts.set(false);
-		}
+		// 通过功能块开启，没有咱们也不关闭好吧。
+		// if (contents.length === 0) {
+		// 	showControls.set(false);
+		// 	showArtifacts.set(false);
+		// }
 
 		selectedContentIdx = contents ? contents.length - 1 : 0;
 	};

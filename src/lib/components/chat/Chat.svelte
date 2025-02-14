@@ -692,7 +692,13 @@
 		await showControls.set(true);
 		await showCallOverlay.set(false);
 		await showOverview.set(false);
-		await showArtifacts.set(false);
+
+		// 如果 previewMode 开启,则自动打开 artifacts 组件
+		if (previewModeEnabled) {
+			await showArtifacts.set(true);
+		} else {
+			await showArtifacts.set(false);
+		}
 
 		if ($page.url.pathname.includes('/c/')) {
 			window.history.replaceState(history.state, '', `/`);

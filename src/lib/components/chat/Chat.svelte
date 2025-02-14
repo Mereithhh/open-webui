@@ -445,9 +445,6 @@
 		chatInput?.focus();
 
 		chats.subscribe(() => {});
-		if (previewModeEnabled) {
-			showArtifacts.set(true);
-		}
 	});
 
 	onDestroy(() => {

@@ -45,6 +45,7 @@
 	import Photo from '../icons/Photo.svelte';
 	import CommandLine from '../icons/CommandLine.svelte';
 	import { KokoroWorker } from '$lib/workers/KokoroWorker';
+	import Cube from '../icons/Cube.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -72,13 +73,15 @@
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
+	export let previewModeEnabled = false;
 
 	$: onChange({
 		prompt,
 		files,
 		selectedToolIds,
 		imageGenerationEnabled,
-		webSearchEnabled
+		webSearchEnabled,
+		previewModeEnabled
 	});
 
 	let loaded = false;
@@ -472,6 +475,24 @@
 											</span>
 										</div>
 										<div class=" translate-y-[0.5px]">{$i18n.t('Execute code for analysis')}</div>
+									</div>
+								</div>
+							{/if}
+
+							{#if previewModeEnabled}
+								<div class="flex items-center justify-between w-full">
+									<div class="flex items-center gap-2.5 text-sm dark:text-gray-500">
+										<div class="pl-1">
+											<span class="relative flex size-2">
+												<span
+													class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+												/>
+												<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+											</span>
+										</div>
+										<div class=" translate-y-[0.5px]">
+											{$i18n.t('Change system_prompt and show artifacts panel')}
+										</div>
 									</div>
 								</div>
 							{/if}
@@ -1133,6 +1154,22 @@
 
 										<div class="flex gap-0.5 items-center overflow-x-auto scrollbar-none flex-1">
 											{#if $_user}
+												<Tooltip content={$i18n.t('PreviewMode')} placement="top">
+													<button
+														on:click|preventDefault={() =>
+															(previewModeEnabled = !previewModeEnabled)}
+														type="button"
+														class="px-1.5 @sm:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-none max-w-full overflow-hidden {previewModeEnabled
+															? 'bg-gray-100 dark:bg-gray-500/20 text-gray-600 dark:text-gray-400'
+															: 'bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+													>
+														<Cube className=" size-4" strokeWidth="1.5" />
+														<span
+															class="hidden @sm:block whitespace-nowrap overflow-hidden text-ellipsis translate-y-[0.5px] mr-0.5"
+															>{$i18n.t('PreviewMode')}</span
+														>
+													</button>
+												</Tooltip>
 												{#if $config?.features?.enable_web_search && ($_user.role === 'admin' || $_user?.permissions?.features?.web_search)}
 													<Tooltip content={$i18n.t('Search the internet')} placement="top">
 														<button

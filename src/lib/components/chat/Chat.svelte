@@ -119,6 +119,7 @@
 	let imageGenerationEnabled = false;
 	let webSearchEnabled = false;
 	let codeInterpreterEnabled = false;
+	let previewModeEnabled = false;
 	let chat = null;
 	let tags = [];
 
@@ -688,10 +689,16 @@
 			}
 		}
 
-		await showControls.set(false);
+		await showControls.set(true);
 		await showCallOverlay.set(false);
 		await showOverview.set(false);
-		await showArtifacts.set(false);
+
+		// 如果 previewMode 开启,则自动打开 artifacts 组件
+		if (previewModeEnabled) {
+			await showArtifacts.set(true);
+		} else {
+			await showArtifacts.set(false);
+		}
 
 		if ($page.url.pathname.includes('/c/')) {
 			window.history.replaceState(history.state, '', `/`);
@@ -1568,7 +1575,8 @@
 						$config?.features?.enable_web_search &&
 						($user.role === 'admin' || $user?.permissions?.features?.web_search)
 							? webSearchEnabled || ($settings?.webSearch ?? false) === 'always'
-							: false
+							: false,
+					preview_mode: previewModeEnabled
 				},
 				variables: {
 					...getPromptVariables(
@@ -1988,6 +1996,7 @@
 								bind:selectedToolIds
 								bind:imageGenerationEnabled
 								bind:codeInterpreterEnabled
+								bind:previewModeEnabled
 								bind:webSearchEnabled
 								bind:atSelectedModel
 								transparentBackground={$settings?.backgroundImageUrl ?? false}
@@ -2040,6 +2049,7 @@
 								bind:selectedToolIds
 								bind:imageGenerationEnabled
 								bind:codeInterpreterEnabled
+								bind:previewModeEnabled
 								bind:webSearchEnabled
 								bind:atSelectedModel
 								transparentBackground={$settings?.backgroundImageUrl ?? false}

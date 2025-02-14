@@ -37,6 +37,7 @@
 	export let imageGenerationEnabled = false;
 	export let codeInterpreterEnabled = false;
 	export let webSearchEnabled = false;
+	export let previewModeEnabled = false;
 
 	let models = [];
 
@@ -194,6 +195,7 @@
 					bind:selectedToolIds
 					bind:imageGenerationEnabled
 					bind:codeInterpreterEnabled
+					bind:previewModeEnabled
 					bind:webSearchEnabled
 					bind:atSelectedModel
 					{transparentBackground}

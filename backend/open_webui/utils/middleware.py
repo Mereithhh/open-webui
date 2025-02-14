@@ -80,6 +80,7 @@ from open_webui.config import (
     CACHE_DIR,
     DEFAULT_TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE,
     DEFAULT_CODE_INTERPRETER_PROMPT,
+    DEFAULT_PREVIEW_MODE_PROMPT
 )
 from open_webui.env import (
     SRC_LOG_LEVELS,
@@ -703,7 +704,13 @@ async def process_chat_payload(request, form_data, metadata, user, model):
                 ),
                 form_data["messages"],
             )
-
+        if "preview_mode" in features and features["preview_mode"]:
+            form_data["messages"] = add_or_update_system_message(
+                (
+                    DEFAULT_PREVIEW_MODE_PROMPT
+                ),
+                form_data["messages"],
+            )
     try:
         form_data, flags = await process_filter_functions(
             request=request,

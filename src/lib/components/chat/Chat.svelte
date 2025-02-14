@@ -1328,7 +1328,6 @@
 		parentId: string,
 		{ modelId = null, modelIdx = null, newChat = false } = {}
 	) => {
-		
 		let _chatId = JSON.parse(JSON.stringify($chatId));
 		_history = JSON.parse(JSON.stringify(_history));
 
@@ -1573,9 +1572,8 @@
 						$config?.features?.enable_web_search &&
 						($user.role === 'admin' || $user?.permissions?.features?.web_search)
 							? webSearchEnabled || ($settings?.webSearch ?? false) === 'always'
-							: false
-					preview_mode:
-					  previewModeEnabled,
+							: false,
+					preview_mode: previewModeEnabled
 				},
 				variables: {
 					...getPromptVariables(

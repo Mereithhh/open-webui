@@ -194,6 +194,7 @@
 					bind:selectedToolIds
 					bind:imageGenerationEnabled
 					bind:codeInterpreterEnabled
+					bind:previewModeEnabled
 					bind:webSearchEnabled
 					bind:atSelectedModel
 					{transparentBackground}

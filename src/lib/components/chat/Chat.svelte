@@ -119,6 +119,7 @@
 	let imageGenerationEnabled = false;
 	let webSearchEnabled = false;
 	let codeInterpreterEnabled = false;
+	let previewModeEnabled = false;
 	let chat = null;
 	let tags = [];
 
@@ -444,6 +445,9 @@
 		chatInput?.focus();
 
 		chats.subscribe(() => {});
+		if (previewModeEnabled) {
+			showArtifacts.set(true);
+		}
 	});
 
 	onDestroy(() => {
@@ -688,7 +692,7 @@
 			}
 		}
 
-		await showControls.set(false);
+		await showControls.set(true);
 		await showCallOverlay.set(false);
 		await showOverview.set(false);
 		await showArtifacts.set(false);
@@ -1324,6 +1328,7 @@
 		parentId: string,
 		{ modelId = null, modelIdx = null, newChat = false } = {}
 	) => {
+		
 		let _chatId = JSON.parse(JSON.stringify($chatId));
 		_history = JSON.parse(JSON.stringify(_history));
 
@@ -1569,6 +1574,8 @@
 						($user.role === 'admin' || $user?.permissions?.features?.web_search)
 							? webSearchEnabled || ($settings?.webSearch ?? false) === 'always'
 							: false
+					preview_mode:
+					  previewModeEnabled,
 				},
 				variables: {
 					...getPromptVariables(
@@ -1988,6 +1995,7 @@
 								bind:selectedToolIds
 								bind:imageGenerationEnabled
 								bind:codeInterpreterEnabled
+								bind:previewModeEnabled
 								bind:webSearchEnabled
 								bind:atSelectedModel
 								transparentBackground={$settings?.backgroundImageUrl ?? false}
@@ -2040,6 +2048,7 @@
 								bind:selectedToolIds
 								bind:imageGenerationEnabled
 								bind:codeInterpreterEnabled
+								bind:previewModeEnabled
 								bind:webSearchEnabled
 								bind:atSelectedModel
 								transparentBackground={$settings?.backgroundImageUrl ?? false}

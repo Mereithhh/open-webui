@@ -72,13 +72,15 @@
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
+	export let previewModeEnabled = false;
 
 	$: onChange({
 		prompt,
 		files,
 		selectedToolIds,
 		imageGenerationEnabled,
-		webSearchEnabled
+		webSearchEnabled,
+		previewModeEnabled
 	});
 
 	let loaded = false;
@@ -1133,6 +1135,31 @@
 
 										<div class="flex gap-0.5 items-center overflow-x-auto scrollbar-none flex-1">
 											{#if $_user}
+												<Tooltip content={$i18n.t('PreviewMode')} placement="top">
+													<button
+														on:click|preventDefault={() =>
+															(previewModeEnabled = !previewModeEnabled)}
+														type="button"
+														class="px-1.5 @sm:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-none max-w-full overflow-hidden bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															class="size-5"
+															strokeWidth="1.75"
+														>
+															<path
+																d="M20 7h-7L10 4H4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Z"
+															/>
+														</svg>
+														<span
+															class="hidden @sm:block whitespace-nowrap overflow-hidden text-ellipsis translate-y-[0.5px] mr-0.5"
+															>{$i18n.t('PreviewMode')}</span
+														>
+													</button>
+												</Tooltip>
 												{#if $config?.features?.enable_web_search && ($_user.role === 'admin' || $_user?.permissions?.features?.web_search)}
 													<Tooltip content={$i18n.t('Search the internet')} placement="top">
 														<button

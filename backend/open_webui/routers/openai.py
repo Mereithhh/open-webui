@@ -674,6 +674,11 @@ async def generate_chat_completion(
     session = None
     streaming = False
     response = None
+    message_id = metadata.get("message_id", "")
+    chat_id = metadata.get("chat_id", "")
+    session_id = metadata.get("session_id", "")
+    user_id = metadata.get("user_id", "")
+    
 
     try:
         session = aiohttp.ClientSession(
@@ -705,6 +710,11 @@ async def generate_chat_completion(
                     if ENABLE_FORWARD_USER_INFO_HEADERS
                     else {}
                 ),
+                "X-OpenWebUI-Message-Id": message_id,
+                "X-OpenWebUI-Chat-Id": chat_id,
+                "X-OpenWebUI-Session-Id": session_id,
+                "X-OpenWebUI-User-Id": user_id,
+                "X-OpenWebUI-Model": model,
             },
         )
 

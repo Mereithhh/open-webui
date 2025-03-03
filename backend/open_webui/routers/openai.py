@@ -674,10 +674,10 @@ async def generate_chat_completion(
     session = None
     streaming = False
     response = None
-    message_id = metadata.get("message_id", "")
-    chat_id = metadata.get("chat_id", "")
-    session_id = metadata.get("session_id", "")
-    user_id = metadata.get("user_id", "")
+    message_id = str(metadata.get("message_id", ""))
+    chat_id = str(metadata.get("chat_id", ""))
+    session_id = str(metadata.get("session_id", ""))
+    user_id = str(metadata.get("user_id", ""))
     
 
     try:

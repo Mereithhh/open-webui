@@ -714,7 +714,6 @@ async def generate_chat_completion(
                 "X-OpenWebUI-Chat-Id": chat_id,
                 "X-OpenWebUI-Session-Id": session_id,
                 "X-OpenWebUI-User-Id": user_id,
-                "X-OpenWebUI-Model": model,
             },
         )
 

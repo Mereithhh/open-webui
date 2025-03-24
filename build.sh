@@ -1,4 +1,7 @@
-image=mereith/open-webui:v0.1.2
+#!/bin/bash
+set -e
+
+image=mereith/open-webui:v0.1.4
 
 docker build -t $image .
-# docker push $image
+docker push $image

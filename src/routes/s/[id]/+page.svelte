@@ -137,7 +137,7 @@
 	<div
 		class="h-screen max-h-[100dvh] w-full flex flex-col text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-900"
 	>
-		<div class="flex flex-col flex-auto justify-center relative">
+		<div class="flex flex-col flex-1 justify-center relative">
 			<div class=" flex flex-col w-full flex-auto h-0" id="messages-container">
 				<div class="pt-5 px-2 w-full max-w-5xl mx-auto">
 					<div class="px-3">
@@ -153,8 +153,8 @@
 					</div>
 				</div>
 
-				<div class="flex flex-1 w-full h-full mx-auto">
-					<div class=" h-full w-full flex flex-1 flex-col overflow-auto py-2">
+				<div class="flex flex-1 w-full h-full overflow-hidden">
+					<div class="h-full w-full flex flex-1 flex-col overflow-auto py-2">
 						<div class="">
 							<Messages
 								className="h-full flex pt-4 pb-8"
@@ -174,7 +174,7 @@
 						</div>
 					</div>
 					{#if $showArtifacts}
-						<div class="artifactsContainer flex-1 relative h-full">
+						<div class="artifactsContainer flex flex-1 flex-col relative pb-[56px]">
 							<Artifacts {history} />
 						</div>
 					{/if}

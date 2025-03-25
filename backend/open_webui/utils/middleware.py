@@ -44,6 +44,7 @@ from open_webui.routers.pipelines import (
     process_pipeline_outlet_filter,
 )
 from open_webui.mcp.tools import process_mcp_tools, handle_mcp_response_tool_calls
+from open_webui.mcp.ui import serialize_mcp_tool_calls
 
 from open_webui.utils.webhook import post_webhook
 
@@ -1138,39 +1139,9 @@ async def process_chat_response(
                     if block["type"] == "text":
                         content = f"{content}{block['content'].strip()}\n"
                     elif block["type"] == "tool_calls":
-                        attributes = block.get("attributes", {})
-
-                        block_content = block.get("content", [])
-                        results = block.get("results", [])
-
-                        if results:
-
-                            result_display_content = ""
-
-                            for result in results:
-                                tool_call_id = result.get("tool_call_id", "")
-                                tool_name = ""
-
-                                for tool_call in block_content:
-                                    if tool_call.get("id", "") == tool_call_id:
-                                        tool_name = tool_call.get("function", {}).get(
-                                            "name", ""
-                                        )
-                                        break
-
-                                result_display_content = f"{result_display_content}\n> {tool_name}: {result.get('content', '')}"
-
-                            if not raw:
-                                content = f'{content}\n<details type="tool_calls" done="true" content="{html.escape(json.dumps(block_content))}" results="{html.escape(json.dumps(results))}">\n<summary>MCP Tool Executed</summary>\n{result_display_content}\n</details>\n'
-                        else:
-                            tool_calls_display_content = ""
-
-                            for tool_call in block_content:
-                                tool_calls_display_content = f"{tool_calls_display_content}\n> Executing {tool_call.get('function', {}).get('name', '')}"
-
-                            if not raw:
-                                content = f'{content}\n<details type="tool_calls" done="false" content="{html.escape(json.dumps(block_content))}">\n<summary>Tool Executing...</summary>\n{tool_calls_display_content}\n</details>\n'
-
+                        # 使用新的MCP UI函数处理工具调用
+                        tool_calls_content = serialize_mcp_tool_calls(block, raw)
+                        content = f"{content}\n{tool_calls_content}\n"
                     elif block["type"] == "reasoning":
                         reasoning_display_content = "\n".join(
                             (f"> {line}" if not line.startswith(">") else line)
@@ -1732,7 +1703,7 @@ async def process_chat_response(
                     if response_tool_calls:
                         tool_calls.append(response_tool_calls)
 
-                    if response.background:
+                    if response.background is not None:
                         await response.background()
 
                 await stream_body_handler(response)
@@ -1749,6 +1720,7 @@ async def process_chat_response(
                         {
                             "type": "tool_calls",
                             "content": response_tool_calls,
+                            "started_at": time.time(),  # 添加开始时间戳
                         }
                     )
 
@@ -1775,6 +1747,10 @@ async def process_chat_response(
                         if mcp_results:
                             results.extend(mcp_results)
                             content_blocks[-1]["results"] = results
+                            # 添加工具调用结束时间戳
+                            content_blocks[-1]["ended_at"] = time.time()
+                            if "started_at" not in content_blocks[-1]:
+                                content_blocks[-1]["started_at"] = time.time() - 1  # 默认1秒前开始
                             # 不跳过后续处理，让模型能处理工具结果
                             # 将被工具处理标记为true，以防止后续的普通工具处理覆盖结果
                             mcp_processed = True

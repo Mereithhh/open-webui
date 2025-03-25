@@ -74,19 +74,34 @@ async def handle_mcp_tool_call(
     
     # 执行工具调用
     try:
-        result: CallToolResult = await server.execute_tool(tool_name, arguments)
-        
-        log.debug(f"MCP 工具调用结果: {result}")
+        result = await server.execute_tool(tool_name, arguments)
+        log.info(f"MCP 工具调用结果: {result}")
         
         # 提取结果中的纯文本内容
         result_text = ""
         
         # 检查结果格式并提取文本
         if hasattr(result, "content") and isinstance(result.content, list):
-            # 从 content 列表中提取文本
+            # 从 content 列表中提取文本和图片
             for item in result.content:
-                if hasattr(item, "text") and item.text:
-                    result_text += item.text
+                if hasattr(item, "type"):
+                    if item.type == "text" and hasattr(item, "text"):
+                        result_text += item.text
+                    elif item.type == "image" and hasattr(item, "data"):
+                        # 处理图片内容
+                        img_type = getattr(item, "mimeType", "image/png")
+                        result_text += f"\n![图片](data:{img_type};base64,{item.data})\n"
+                    elif item.type == "resource" and hasattr(item, "resource"):
+                        # 处理嵌入资源
+                        resource = item.resource
+                        if hasattr(resource, "text"):
+                            result_text += resource.text
+                        elif hasattr(resource, "blob"):
+                            mime_type = getattr(resource, "mimeType", "application/octet-stream")
+                            if "image" in mime_type:
+                                result_text += f"\n![资源图片](data:{mime_type};base64,{resource.blob})\n"
+                            else:
+                                result_text += f"\n[嵌入资源 ({mime_type})]({resource.uri})\n"
         elif isinstance(result, str):
             # 如果结果本身就是字符串
             result_text = result

@@ -442,3 +442,8 @@ AUDIT_EXCLUDED_PATHS = os.getenv("AUDIT_EXCLUDED_PATHS", "/chats,/chat,/folders"
 )
 AUDIT_EXCLUDED_PATHS = [path.strip() for path in AUDIT_EXCLUDED_PATHS]
 AUDIT_EXCLUDED_PATHS = [path.lstrip("/") for path in AUDIT_EXCLUDED_PATHS]
+
+####################################
+# MCP CONFIG
+####################################
+MCP_CONFIG_FILE = os.getenv("MCP_CONFIG_FILE", f"{DATA_DIR}/mcp.yaml")

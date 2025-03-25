@@ -1,0 +1,23 @@
+# Open WebUI MCP 配置示例
+# 可以将此文件复制到 DATA_DIR/mcp.yaml 并进行修改
+
+mcpServers:
+  # PlayWright MCP 服务器配置示例 (使用 STDIO 协议)
+  playwright-mcp:
+    id: "playwright-mcp"
+    displayName: "Playwright 浏览器自动化"
+    description: "用于 Web 浏览器自动化的 MCP 服务器"
+    enabled: true
+    command: "npx"
+    args: ["@executeautomation/playwright-mcp-server"]
+    env:
+      PLAYWRIGHT_HEADLESS: "true"
+      PLAYWRIGHT_TIMEOUT: "60000"
+  
+  # 另一个 MCP 服务器配置示例 (使用 SSE 协议)
+  sse-mcp-server:
+    id: "sse-mcp-server"
+    displayName: "SSE MCP 服务器"
+    description: "使用 SSE 协议的 MCP 服务器示例"
+    enabled: true
+    url: "http://localhost:3000/sse"

@@ -328,7 +328,8 @@ from open_webui.env import (
     RESET_CONFIG_ON_START,
     OFFLINE_MODE,
 )
-
+from open_webui.mcp.config_loader import load_mcp_config
+from open_webui.mcp.mcp import initialize_mcp_servers
 
 from open_webui.utils.models import (
     get_all_models,
@@ -404,6 +405,11 @@ async def lifespan(app: FastAPI):
 
     if LICENSE_KEY:
         get_license_data(app, LICENSE_KEY)
+    
+    app.state.MCP_CONFIG = load_mcp_config()
+    log.info(f"MCP_CONFIG: {app.state.MCP_CONFIG}")
+    app.state.MCP_SERVERS = {}
+    await initialize_mcp_servers(app)
 
     asyncio.create_task(periodic_usage_pool_cleanup())
     yield
@@ -1013,6 +1019,16 @@ async def chat_completion(
 
             request.state.direct = True
             request.state.model = model
+        
+        mcp_servers = []
+        # 看一下 mcp 信息
+        if form_data.get("mcp_servers",None):
+            for mcp_server_id in form_data.get("mcp_servers",None):
+                if mcp_server_id in app.state.MCP_SERVERS:
+                    mcp_servers.append(app.state.MCP_SERVERS[mcp_server_id])
+                else:
+                    log.warning(f"MCP 服务器 {mcp_server_id} 未找到")
+        log.debug(f"chat_completion use mcp_servers: {mcp_servers}")
 
         metadata = {
             "user_id": user.id,
@@ -1035,6 +1051,7 @@ async def chat_completion(
                 )
                 else {}
             ),
+            "mcp_servers": mcp_servers,
         }
 
         request.state.metadata = metadata
@@ -1230,6 +1247,7 @@ async def get_app_config(request: Request):
             if user is not None
             else {}
         ),
+        **(app.state.MCP_CONFIG.to_app_config() if app.state.MCP_CONFIG else {})
     }
 
 

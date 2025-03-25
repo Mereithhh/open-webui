@@ -38,6 +38,7 @@
 	export let codeInterpreterEnabled = false;
 	export let webSearchEnabled = false;
 	export let previewModeEnabled = false;
+	export let selectedMCPServers = [];
 
 	let models = [];
 
@@ -193,6 +194,7 @@
 					bind:prompt
 					bind:autoScroll
 					bind:selectedToolIds
+					bind:selectedMCPServers
 					bind:imageGenerationEnabled
 					bind:codeInterpreterEnabled
 					bind:previewModeEnabled

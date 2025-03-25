@@ -33,6 +33,7 @@
 	import VoiceRecording from './MessageInput/VoiceRecording.svelte';
 	import FilesOverlay from './MessageInput/FilesOverlay.svelte';
 	import Commands from './MessageInput/Commands.svelte';
+	import MCPServerModal from './MessageInput/MCPServerModal.svelte';
 
 	import RichTextInput from '../common/RichTextInput.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
@@ -47,6 +48,7 @@
 	import CommandLine from '../icons/CommandLine.svelte';
 	import { KokoroWorker } from '$lib/workers/KokoroWorker';
 	import Cube from '../icons/Cube.svelte';
+	import Server from '../icons/Server.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -70,19 +72,25 @@
 	export let files = [];
 
 	export let selectedToolIds = [];
+	export let selectedMCPServers = [];
 
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
 	export let previewModeEnabled = false;
+	export let mcpServerEnabled = false;
+
+	let showMCPServerModal = false;
 
 	$: onChange({
 		prompt,
 		files,
 		selectedToolIds,
+		selectedMCPServers,
 		imageGenerationEnabled,
 		webSearchEnabled,
-		previewModeEnabled
+		previewModeEnabled,
+		mcpServerEnabled
 	});
 
 	let loaded = false;
@@ -384,10 +392,40 @@
 				</div>
 
 				<div class="w-full relative">
-					{#if atSelectedModel !== undefined || selectedToolIds.length > 0 || webSearchEnabled || ($settings?.webSearch ?? false) === 'always' || imageGenerationEnabled || codeInterpreterEnabled}
+					{#if atSelectedModel !== undefined || selectedToolIds.length > 0 || webSearchEnabled || ($settings?.webSearch ?? false) === 'always' || imageGenerationEnabled || codeInterpreterEnabled || selectedMCPServers.length > 0}
 						<div
 							class="px-3 pb-0.5 pt-1.5 text-left w-full flex flex-col absolute bottom-0 left-0 right-0 bg-linear-to-t from-white dark:from-gray-900 z-10"
 						>
+							{#if selectedMCPServers.length > 0}
+								<div class="flex items-center justify-between w-full">
+									<div class="flex items-center gap-2.5 text-sm dark:text-gray-500">
+										<div class="pl-1">
+											<span class="relative flex size-2">
+												<span
+													class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"
+												/>
+												<span class="relative inline-flex rounded-full size-2 bg-purple-500" />
+											</span>
+										</div>
+										<div class="text-ellipsis line-clamp-1 flex">
+											{#each selectedMCPServers as server, serverIdx}
+												<Tooltip
+													content={$config?.mcp_servers?.find(s => s.name === server)?.description ?? ''}
+													className="{serverIdx !== 0 ? 'pl-0.5' : ''} shrink-0"
+													placement="top"
+												>
+													{$config?.mcp_servers?.find(s => s.name === server)?.name ?? server}
+												</Tooltip>
+
+												{#if serverIdx !== selectedMCPServers.length - 1}
+													<span>, </span>
+												{/if}
+											{/each}
+										</div>
+									</div>
+								</div>
+							{/if}
+							
 							{#if selectedToolIds.length > 0}
 								<div class="flex items-center justify-between w-full">
 									<div class="flex items-center gap-2.5 text-sm dark:text-gray-500">
@@ -1207,6 +1245,27 @@
 														>
 													</button>
 												</Tooltip>
+												
+												{#if $config?.mcp_servers && $config.mcp_servers.length > 0}
+													<Tooltip content={$i18n.t('MCP Server')} placement="top">
+														<button
+															on:click|preventDefault={() => {
+																showMCPServerModal = true;
+															}}
+															type="button"
+															class="px-1.5 @sm:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-none max-w-full overflow-hidden {selectedMCPServers.length > 0
+																? 'bg-purple-100 dark:bg-purple-500/20 text-purple-500 dark:text-purple-400'
+																: 'bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+														>
+															<Server className=" size-4" strokeWidth="1.5" />
+															<span
+																class="hidden @sm:block whitespace-nowrap overflow-hidden text-ellipsis translate-y-[0.5px] mr-0.5"
+																>{$i18n.t('MCP Server')}</span
+															>
+														</button>
+													</Tooltip>
+												{/if}
+
 												{#if $config?.features?.enable_web_search && ($_user.role === 'admin' || $_user?.permissions?.features?.web_search)}
 													<Tooltip content={$i18n.t('Search the internet')} placement="top">
 														<button
@@ -1449,3 +1508,11 @@
 		</div>
 	</div>
 {/if}
+
+<MCPServerModal 
+	bind:show={showMCPServerModal}
+	bind:selectedServers={selectedMCPServers}
+	on:close={() => {
+		showMCPServerModal = false;
+	}}
+/>

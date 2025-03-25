@@ -136,6 +136,8 @@
 	let files = [];
 	let params = {};
 
+	let selectedMCPServers = [];
+
 	$: if (chatIdProp) {
 		(async () => {
 			loading = true;
@@ -1571,6 +1573,8 @@
 				files: (files?.length ?? 0) > 0 ? files : undefined,
 				tool_ids: selectedToolIds.length > 0 ? selectedToolIds : undefined,
 
+				mcp_servers: selectedMCPServers.length > 0 ? selectedMCPServers : undefined,
+
 				features: {
 					image_generation:
 						$config?.features?.enable_image_generation &&
@@ -2035,6 +2039,7 @@
 								bind:prompt
 								bind:autoScroll
 								bind:selectedToolIds
+								bind:selectedMCPServers
 								bind:imageGenerationEnabled
 								bind:codeInterpreterEnabled
 								bind:previewModeEnabled
@@ -2088,6 +2093,7 @@
 								bind:prompt
 								bind:autoScroll
 								bind:selectedToolIds
+								bind:selectedMCPServers
 								bind:imageGenerationEnabled
 								bind:codeInterpreterEnabled
 								bind:previewModeEnabled

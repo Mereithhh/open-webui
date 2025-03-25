@@ -134,9 +134,9 @@ def format_tool_result(result: str) -> str:
         return f"```html\n{result[:500]}...\n```\n*（返回了HTML内容，已截断显示）*"
     
     # 检查是否为长文本
-    if len(result) > 1000:
-        # 对长文本进行截断
-        return f"```\n{result[:1000]}...\n```\n*（结果较长，已截断显示）*"
+    # if len(result) > 1000:
+    #     # 对长文本进行截断
+    #     return f"```\n{result[:1000]}...\n```\n*（结果较长，已截断显示）*"
     
     # 如果不是JSON或解析失败，处理普通文本
     lines = result.split("\n")

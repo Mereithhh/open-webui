@@ -43,6 +43,7 @@ from open_webui.routers.pipelines import (
     process_pipeline_inlet_filter,
     process_pipeline_outlet_filter,
 )
+from open_webui.mcp.tools import process_mcp_tools, handle_mcp_response_tool_calls
 
 from open_webui.utils.webhook import post_webhook
 
@@ -93,7 +94,7 @@ from open_webui.env import (
     ENABLE_REALTIME_CHAT_SAVE,
 )
 from open_webui.constants import TASKS
-
+from open_webui.mcp.mcp import cleanup_mcp_servers
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -811,6 +812,15 @@ async def process_chat_payload(request, form_data, user, metadata, model):
             except Exception as e:
                 log.exception(e)
 
+    # 处理 MCP 工具
+    if metadata.get("mcp_servers", []):
+        log.debug("处理 MCP 工具")
+        try:
+            form_data, flags = await process_mcp_tools(request, form_data, user, metadata)
+            sources.extend(flags.get("sources", []))
+        except Exception as e:
+            log.exception(f"处理 MCP 工具错误: {e}")
+
     try:
         form_data, flags = await chat_completion_files_handler(request, form_data, user)
         sources.extend(flags.get("sources", []))
@@ -1151,7 +1161,7 @@ async def process_chat_response(
                                 result_display_content = f"{result_display_content}\n> {tool_name}: {result.get('content', '')}"
 
                             if not raw:
-                                content = f'{content}\n<details type="tool_calls" done="true" content="{html.escape(json.dumps(block_content))}" results="{html.escape(json.dumps(results))}">\n<summary>Tool Executed</summary>\n{result_display_content}\n</details>\n'
+                                content = f'{content}\n<details type="tool_calls" done="true" content="{html.escape(json.dumps(block_content))}" results="{html.escape(json.dumps(results))}">\n<summary>MCP Tool Executed</summary>\n{result_display_content}\n</details>\n'
                         else:
                             tool_calls_display_content = ""
 
@@ -1754,47 +1764,68 @@ async def process_chat_response(
                     tools = metadata.get("tools", {})
 
                     results = []
-                    for tool_call in response_tool_calls:
-                        tool_call_id = tool_call.get("id", "")
-                        tool_name = tool_call.get("function", {}).get("name", "")
+                    
+                    # 检查是否有 MCP 工具并处理
+                    if metadata.get("mcp_enabled", False) and metadata.get("mcp_servers", []):
+                        mcp_results = await handle_mcp_response_tool_calls(
+                            response_tool_calls, 
+                            metadata,
+                            event_emitter
+                        )
+                        if mcp_results:
+                            results.extend(mcp_results)
+                            content_blocks[-1]["results"] = results
+                            # 不跳过后续处理，让模型能处理工具结果
+                            # 将被工具处理标记为true，以防止后续的普通工具处理覆盖结果
+                            mcp_processed = True
+                        else:
+                            mcp_processed = False
+                    else:
+                        mcp_processed = False
+                    
+                    # 处理普通工具，但如果MCP已经处理过则跳过
+                    if not mcp_processed:
+                        for tool_call in response_tool_calls:
+                            tool_call_id = tool_call.get("id", "")
+                            tool_name = tool_call.get("function", {}).get("name", "")
 
-                        tool_function_params = {}
-                        try:
-                            # json.loads cannot be used because some models do not produce valid JSON
-                            tool_function_params = ast.literal_eval(
-                                tool_call.get("function", {}).get("arguments", "{}")
-                            )
-                        except Exception as e:
-                            log.debug(e)
-
-                        tool_result = None
-
-                        if tool_name in tools:
-                            tool = tools[tool_name]
-                            spec = tool.get("spec", {})
-
+                            tool_function_params = {}
                             try:
-                                required_params = spec.get("parameters", {}).get(
-                                    "required", []
-                                )
-                                tool_function = tool["callable"]
-                                tool_function_params = {
-                                    k: v
-                                    for k, v in tool_function_params.items()
-                                    if k in required_params
-                                }
-                                tool_result = await tool_function(
-                                    **tool_function_params
+                                # json.loads cannot be used because some models do not produce valid JSON
+                                tool_function_params = ast.literal_eval(
+                                    tool_call.get("function", {}).get("arguments", "{}")
                                 )
                             except Exception as e:
-                                tool_result = str(e)
+                                log.debug(e)
 
-                        results.append(
-                            {
-                                "tool_call_id": tool_call_id,
-                                "content": tool_result,
-                            }
-                        )
+                            tool_result = None
+
+                            if tool_name in tools:
+                                tool = tools[tool_name]
+                                spec = tool.get("spec", {})
+
+                                try:
+                                    required_params = spec.get("parameters", {}).get(
+                                        "required", []
+                                    )
+                                    tool_function = tool["callable"]
+                                    tool_function_params = {
+                                        k: v
+                                        for k, v in tool_function_params.items()
+                                        if k in required_params
+                                    }
+                                    tool_result = await tool_function(
+                                        **tool_function_params
+                                    )
+                                except Exception as e:
+                                    tool_result = str(e)
+
+                            results.append(
+                                {
+                                    "tool_call_id": tool_call_id,
+                                    "content": tool_result,
+                                }
+                            )
 
                     content_blocks[-1]["results"] = results
 
@@ -2077,9 +2108,21 @@ async def process_chat_response(
                             "content": serialize_content_blocks(content_blocks),
                         },
                     )
+                
+                # 清理 MCP 相关资源
+                if metadata.get("mcp_servers", []) or metadata.get("mcp_enabled", False):
+                    log.debug("清理 MCP 资源（任务取消）")
+                    if "mcp_servers" in metadata:
+                        await cleanup_mcp_servers(metadata["mcp_servers"])
 
             if response.background is not None:
                 await response.background()
+                
+            # 清理 MCP 相关资源
+            if metadata.get("mcp_servers", []) or metadata.get("mcp_enabled", False):
+                log.debug("清理 MCP 资源（最终清理）")
+                if "mcp_servers" in metadata:
+                    await cleanup_mcp_servers(metadata["mcp_servers"])
 
         # background_tasks.add_task(post_response_handler, response, events)
         task_id, _ = create_task(post_response_handler(response, events))

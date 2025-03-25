@@ -667,6 +667,8 @@ async def generate_chat_completion(
 
     # Convert the modified body back to JSON
     payload = json.dumps(payload)
+    
+    log.info(f"OpenAI 原始请求 Body: {payload}")
 
     r = None
     session = None

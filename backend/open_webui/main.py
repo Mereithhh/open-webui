@@ -408,8 +408,6 @@ async def lifespan(app: FastAPI):
     
     app.state.MCP_CONFIG = load_mcp_config()
     log.info(f"MCP_CONFIG: {app.state.MCP_CONFIG}")
-    app.state.MCP_SERVERS = {}
-    await initialize_mcp_servers(app)
 
     asyncio.create_task(periodic_usage_pool_cleanup())
     yield
@@ -1020,15 +1018,16 @@ async def chat_completion(
             request.state.direct = True
             request.state.model = model
         
+        form_data["mcp_servers"] = ["hefeng-weather"]
         mcp_servers = []
-        # 看一下 mcp 信息
-        if form_data.get("mcp_servers",None):
-            for mcp_server_id in form_data.get("mcp_servers",None):
-                if mcp_server_id in app.state.MCP_SERVERS:
-                    mcp_servers.append(app.state.MCP_SERVERS[mcp_server_id])
-                else:
-                    log.warning(f"MCP 服务器 {mcp_server_id} 未找到")
-        log.debug(f"chat_completion use mcp_servers: {mcp_servers}")
+        #获取 mcp_servers 信息
+        if "mcp_servers" in form_data:
+            mcp_server_ids = form_data.pop("mcp_servers", [])
+            mcp_server_configs = app.state.MCP_CONFIG.filter_avalible_servers(mcp_server_ids)
+            mcp_server_ids = [config.id for config in mcp_server_configs]
+            log.info(f"chat_completion 使用 mcp_servers: {mcp_server_ids}")
+            mcp_servers_dict = await initialize_mcp_servers(app,mcp_server_ids)
+            mcp_servers = list(mcp_servers_dict.values())
 
         metadata = {
             "user_id": user.id,

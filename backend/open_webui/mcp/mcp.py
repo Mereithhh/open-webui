@@ -144,7 +144,10 @@ class Server:
         """Clean up server resources."""
         async with self._cleanup_lock:
             try:
-                await self.exit_stack.aclose()
+                try:
+                    await self.exit_stack.aclose()
+                except (asyncio.CancelledError, asyncio.InvalidStateError) as e:
+                    log.warning(f"[MCP] Async context cleanup issue for server {self.name}: {e}. This may be due to task context changes.")
                 self.session = None
                 self.stdio_context = None
             except Exception as e:
@@ -184,15 +187,35 @@ Arguments:
 {chr(10).join(args_desc)}
 """
 
-async def initialize_mcp_servers(app: FastAPI):
+async def initialize_mcp_servers(app: FastAPI,server_ids: list[str]) -> dict[str, Server]:
     """Initialize all MCP servers."""
     i = 0
+    mcp_servers = {}
     for server_config in app.state.MCP_CONFIG.mcpServers.values():
         if not server_config.enabled:
             continue
+        if server_config.id not in server_ids:
+            continue
         server = Server(server_config.id, server_config)
         await server.initialize()
-        app.state.MCP_SERVERS[server_config.id] = server
+        mcp_servers[server_config.id] = server
         log.info(f"[MCP] Initialized server {server_config.id}")
         i += 1
     log.info(f"[MCP] Initialized {i} servers 😊")
+    return mcp_servers
+
+async def cleanup_mcp_servers(mcp_servers: list[Server]):
+    """Clean up all MCP servers.
+    
+    Args:
+        mcp_servers: List of MCP server instances to clean up
+    """
+    cleanup_count = 0
+    for server in mcp_servers:
+        try:
+            await server.cleanup()
+            cleanup_count += 1
+        except Exception as e:
+            log.error(f"[MCP] Failed to clean up server {server.name}: {e}")
+    
+    log.info(f"[MCP] Cleaned up {cleanup_count}/{len(mcp_servers)} servers 😊")

@@ -42,6 +42,10 @@ class MCPConfig(BaseModel):
                 for server in self.mcpServers.values()
             ]
         }
+    def filter_avalible_servers(self, server_ids: List[str]) -> List[MCPServerConfig]:
+        """过滤已启用的 MCP 服务器"""
+        l =  [server for server in self.mcpServers.values() if server.enabled]
+        return [server for server in l if server.id in server_ids]
     
 def load_mcp_config() -> MCPConfig:
     """

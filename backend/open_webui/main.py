@@ -1018,7 +1018,7 @@ async def chat_completion(
             request.state.direct = True
             request.state.model = model
         
-        form_data["mcp_servers"] = ["hefeng-weather"]
+        # form_data["mcp_servers"] = ["hefeng-weather"]
         mcp_servers = []
         #获取 mcp_servers 信息
         if "mcp_servers" in form_data:

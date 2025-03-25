@@ -46,7 +46,36 @@ class MCPConfig(BaseModel):
         """过滤已启用的 MCP 服务器"""
         l =  [server for server in self.mcpServers.values() if server.enabled]
         return [server for server in l if server.id in server_ids]
+    def to_full_yaml(self) -> str:
+        """将完整的 MCP 配置转换为 YAML 字符串，用于保存配置文件"""
+        # 首先将模型转换为字典
+        config_dict = self.model_dump(exclude_none=True)
+        # 然后使用 yaml.dump 将字典转换为 YAML 字符串
+        return yaml.dump(config_dict, allow_unicode=True, sort_keys=False)
     
+    def save_to_file(self, file_path: Optional[str] = None) -> None:
+        """将配置保存到文件
+        
+        参数:
+            file_path: 文件路径，如果为 None 则使用默认配置文件路径
+        """
+        save_path = Path(file_path) if file_path else Path(MCP_CONFIG_FILE)
+        yaml_content = self.to_full_yaml()
+        
+        try:
+            # 确保目录存在
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 写入文件
+            with open(save_path, 'w', encoding='utf-8') as f:
+                f.write(yaml_content)
+                
+            log.info(f"MCP 配置已保存到: {save_path}")
+        except Exception as e:
+            log.error(f"保存 MCP 配置失败: {str(e)}")
+            raise
+
+
 def load_mcp_config() -> MCPConfig:
     """
     从 YAML 文件加载 MCP 配置

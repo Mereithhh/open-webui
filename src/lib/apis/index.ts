@@ -1238,14 +1238,70 @@ export type GlobalModelConfig = ModelConfig[];
 export const updateModelConfig = async (token: string, config: GlobalModelConfig) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config/models`, {
+	const res = await fetch(`${WEBUI_BASE_URL}/api/models/config`, {
+		method: 'PUT',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			...(token && { authorization: `Bearer ${token}` })
+		},
+		body: JSON.stringify(config)
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.log(err);
+			error = err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const getMCPConfig = async (token: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/mcp/config`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			console.log(err);
+			error = err;
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const updateMCPConfig = async (token: string, yamlConfig: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_BASE_URL}/api/v1/mcp/config`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
 		},
 		body: JSON.stringify({
-			models: config
+			config_yaml: yamlConfig
 		})
 	})
 		.then(async (res) => {

@@ -15,6 +15,7 @@
 	import Connections from './Settings/Connections.svelte';
 	import Documents from './Settings/Documents.svelte';
 	import WebSearch from './Settings/WebSearch.svelte';
+	import MCPConfig from './Settings/MCPConfig.svelte';
 
 	import ChartBar from '../icons/ChartBar.svelte';
 	import DocumentChartBar from '../icons/DocumentChartBar.svelte';
@@ -351,6 +352,29 @@
 			</div>
 			<div class=" self-center">{$i18n.t('Database')}</div>
 		</button>
+
+		<button
+			class="px-0.5 py-1 min-w-fit rounded-lg flex-1 md:flex-none flex text-right transition {selectedTab ===
+			'mcp-config'
+				? ''
+				: ' text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'}"
+			on:click={() => {
+				selectedTab = 'mcp-config';
+			}}
+		>
+			<div class=" self-center mr-2">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					class="w-4 h-4"
+				>
+					<path d="M3.75 1.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75V7.75a.75.75 0 0 0-.75-.75h-5a.75.75 0 0 1-.75-.75v-4a.75.75 0 0 0-.75-.75h-2Z" />
+					<path d="M7.151 4.5h4.349a.75.75 0 0 1 .201.026l-4.55 4.55A.75.75 0 0 1 7.151 9V4.5Z" />
+				</svg>
+			</div>
+			<div class=" self-center">{$i18n.t('MCP Config')}</div>
+		</button>
 	</div>
 
 	<div class="flex-1 mt-3 lg:mt-0 overflow-y-scroll pr-1 scrollbar-hidden">
@@ -428,6 +452,12 @@
 			<Pipelines
 				saveHandler={() => {
 					toast.success($i18n.t('Settings saved successfully!'));
+				}}
+			/>
+		{:else if selectedTab === 'mcp-config'}
+			<MCPConfig
+				saveHandler={() => {
+					// toast.success($i18n.t('Settings saved successfully!'));
 				}}
 			/>
 		{/if}

@@ -1177,5 +1177,15 @@
 	"Youtube": "YouTube",
 	"Youtube Loader Settings": "YouTube 爬取设置",
 	"Youtube Language": "Youtube 语言",
-	"Youtube Proxy URL": "Youtube 代理 URL"
+	"Youtube Proxy URL": "Youtube 代理 URL",
+	"MCP Config": "MCP 配置",
+	"MCP Server": "MCP 服务器",
+	"MCP Server Configuration": "MCP 服务器配置",
+	"Edit the MCP server configuration YAML directly. Be careful as incorrect configuration may break functionality.": "直接编辑 MCP 服务器配置 YAML。请谨慎操作，错误的配置可能会导致功能失效。",
+	"Failed to load MCP configuration": "加载 MCP 配置失败",
+	"MCP configuration updated successfully": "MCP 配置更新成功",
+	"Failed to update MCP configuration": "更新 MCP 配置失败",
+	"Save Configuration": "保存配置",
+	"Reload": "重新加载",
+	"Please refresh your browser for changes to take effect": "浏览器将自动刷新以使更改生效"
 }

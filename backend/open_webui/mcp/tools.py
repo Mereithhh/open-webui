@@ -207,14 +207,22 @@ async def process_mcp_tools(
     if not tools:
         return form_data, {}
     
-    # 将 MCP 工具添加到请求中
-    form_data["tools"] = tools
-    
-    # 如果模型原来已有工具，合并它们
+    # 如果模型原来已有工具，合并它们并去重
     if "tools" in form_data:
         existing_tools = form_data.get("tools", [])
         if isinstance(existing_tools, list):
-            form_data["tools"] = existing_tools + tools
+            # 创建工具名称到工具的映射
+            tool_map = {
+                tool.get("function", {}).get("name"): tool 
+                for tool in existing_tools
+            }
+            # 只添加不存在的工具
+            for new_tool in tools:
+                tool_name = new_tool.get("function", {}).get("name")
+                if tool_name not in tool_map:
+                    tool_map[tool_name] = new_tool
+            # 将映射转换回列表
+            form_data["tools"] = list(tool_map.values())
     
     # 存储 MCP 服务器和工具到元数据中，方便后续响应处理
     metadata["mcp_enabled"] = True

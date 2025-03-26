@@ -223,6 +223,8 @@ async def process_mcp_tools(
                     tool_map[tool_name] = new_tool
             # 将映射转换回列表
             form_data["tools"] = list(tool_map.values())
+    else:
+        form_data["tools"] = tools
     
     # 存储 MCP 服务器和工具到元数据中，方便后续响应处理
     metadata["mcp_enabled"] = True

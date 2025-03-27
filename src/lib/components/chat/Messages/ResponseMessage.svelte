@@ -24,7 +24,8 @@
 		getMessageContentParts,
 		sanitizeResponseContent,
 		createMessagesList,
-		formatDate
+		formatDate,
+		countWordsLikeOffice
 	} from '$lib/utils';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
@@ -1084,7 +1085,7 @@
 														.map((line) => line.slice(2))
 														.map((line) => (line.endsWith(',') ? line.slice(0, -1) : line))
 														.join('\n')
-												)}</pre>`
+												)}${message.usage.words ? "": "\nwords: " + countWordsLikeOffice(message.content)}</pre>`
 											: ''}
 										placement="bottom"
 									>

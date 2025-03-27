@@ -1070,3 +1070,44 @@ export const getLineCount = (text) => {
 	console.log(typeof text);
 	return text ? text.split('\n').length : 0;
 };
+
+export function countWordsLikeOffice(s: string): number {
+	let count = 0;
+	let foundEnglish = false;
+
+	for (let i = 0; i < s.length; i++) {
+		const chr = s[i];
+		const isChineseChar = /[\u4e00-\u9fff]/.test(chr);
+		const isEnglishChar = /^[a-zA-Z0-9]+$/.test(chr);
+		const isEnglishPunctuation = /[.,;!?(){}\[\]<>:"'`~\-+*/&^%$#@|\\]/.test(chr);
+
+		if (isChineseChar) {
+			count += 1;
+			if (foundEnglish) {
+				count += 1;
+				foundEnglish = false;
+			}
+		} else if (isEnglishChar || isEnglishPunctuation) {
+			if (!foundEnglish) {
+				foundEnglish = true;
+			}
+		} else if (chr === ' ' || chr === '\n') {
+			if (foundEnglish) {
+				count += 1;
+				foundEnglish = false;
+			}
+		} else {
+			count += 1;
+			if (foundEnglish) {
+				count += 1;
+				foundEnglish = false;
+			}
+		}
+	}
+
+	if (foundEnglish) {
+		count += 1;
+	}
+
+	return count;
+}

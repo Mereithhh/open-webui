@@ -136,7 +136,8 @@
 									<!-- 加载提示 -->
 									<div id="loading-message">
 										<p>正在加载依赖库，这可能需要一些时间...</p>
-										<p style="font-size: 0.9em; margin-top: 8px;">如果加载时间过长，请考虑使用VPN，某些依赖可能需要访问外网</p>
+										<p style="font-size: 0.9em; margin-top: 8px;">如果加载时间过长，可能是程序有 bug 或不通外网没加载出来依赖。</p>
+										<p style="font-size: 0.9em; margin-top: 8px;">可以前往 playground 进一步调试：<a class="text-blue-500" href="https://artifacts-preview.ai-native.glm.ai/playground?type=react" target="_blank">https://artifacts-preview.ai-native.glm.ai/playground?type=react</a></p>
 									</div>
 									
 									<div id="root" style="visibility: hidden;"></div>
@@ -272,7 +273,8 @@
 							url.pathname + url.search + url.hash
 						);
 					} else {
-						console.log('External navigation blocked:', url.href);
+						window.open(url.href, '_blank');
+						// console.log('External navigation blocked:', url.href);
 					}
 				}
 			},

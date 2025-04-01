@@ -102,7 +102,19 @@
 										body {
 											background-color: white; /* Ensure the iframe has a white background */
 										}
-
+										
+										/* 加载提示样式 */
+										#loading-message {
+											position: absolute;
+											top: 50%;
+											left: 50%;
+											transform: translate(-50%, -50%);
+											text-align: center;
+											font-family: system-ui, -apple-system, sans-serif;
+											color: #666;
+											max-width: 80%;
+										}
+										
 										${cssContent}
 									</${''}style>
 
@@ -121,7 +133,13 @@
 									<${''}script type="module" src="https://esm.sh/tsx"></${''}script>
 								</head>
 								<body>
-									<div id="root"></div>
+									<!-- 加载提示 -->
+									<div id="loading-message">
+										<p>正在加载依赖库，这可能需要一些时间...</p>
+										<p style="font-size: 0.9em; margin-top: 8px;">如果加载时间过长，请考虑使用VPN，某些依赖可能需要访问外网</p>
+									</div>
+									
+									<div id="root" style="visibility: hidden;"></div>
 
 									<${''}script>
 										${jsContent}
@@ -140,14 +158,44 @@
 										);
 									}
 
-
 									${jsxContent}
-									const rootElement = document.getElementById('root');
-									createRoot(rootElement).render(
-										<ErrorBoundary fallbackRender={fallbackRender}>
-											${appComponent}
-										</ErrorBoundary>
-									);
+									
+									// 函数立即执行
+									(function() {
+										const loadingMessage = document.getElementById('loading-message');
+										const rootElement = document.getElementById('root');
+										
+										// 在React渲染之前隐藏加载提示
+										const renderApp = () => {
+											if (loadingMessage) loadingMessage.style.display = 'none';
+											if (rootElement) rootElement.style.visibility = 'visible';
+											
+											createRoot(rootElement).render(
+												<ErrorBoundary fallbackRender={fallbackRender}>
+													${appComponent}
+												</ErrorBoundary>
+											);
+										};
+										
+										// 如果所有依赖已加载完成，立即渲染
+										if (window.React && window.ReactDOM) {
+											renderApp();
+										} else {
+											// 定期检查依赖是否加载完成
+											const checkDependencies = setInterval(() => {
+												if (window.React && window.ReactDOM) {
+													clearInterval(checkDependencies);
+													renderApp();
+												}
+											}, 200);
+											
+											// 最多等待5秒，然后无论如何都渲染
+											setTimeout(() => {
+												clearInterval(checkDependencies);
+												renderApp();
+											}, 5000);
+										}
+									})();
 									</${''}script>
 								</body>
 							</html>

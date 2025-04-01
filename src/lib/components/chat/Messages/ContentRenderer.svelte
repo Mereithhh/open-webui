@@ -156,7 +156,7 @@
 			const { lang, code } = e.detail;
 
 			if (
-				(['html', 'svg'].includes(lang) || (lang === 'xml' && code.includes('svg'))) &&
+				(['html', 'svg', 'jsx'].includes(lang) || (lang === 'xml' && code.includes('svg'))) &&
 				!$mobile &&
 				$chatId
 			) {

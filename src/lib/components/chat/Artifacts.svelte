@@ -48,6 +48,7 @@
 				let htmlContent = '';
 				let cssContent = '';
 				let jsContent = '';
+				let jsxContent = '';
 
 				codeBlocks.forEach((block) => {
 					const { lang, code } = block;
@@ -58,6 +59,8 @@
 						cssContent += code + '\n';
 					} else if (lang === 'javascript' || lang === 'js') {
 						jsContent += code + '\n';
+					} else if (lang === 'jsx') {
+						jsxContent += code + '\n';
 					}
 				});
 
@@ -83,8 +86,74 @@
 						jsContent += content + '\n';
 					});
 				}
+				if (jsxContent) {
+					// 匹配export default 后的组件名称
+					const match = jsxContent.match(/export\s+(default\s+)?(\w+)/);
+					const componentName = match ? match[2] : 'App'; // 如果没有匹配到组件名称，则默认为 'App'
+					const appComponent = `<${componentName} />`;
 
-				if (htmlContent || cssContent || jsContent) {
+					const renderContent = `
+						<!DOCTYPE html>
+							<html lang="en">
+								<head>
+									<meta charset="UTF-8">
+									<meta name="viewport" content="width=device-width, initial-scale=1.0">
+									<${''}style>
+										body {
+											background-color: white; /* Ensure the iframe has a white background */
+										}
+
+										${cssContent}
+									</${''}style>
+
+									<${''}script src="https://cdn.tailwindcss.com"></${''}script>
+
+									<${''}script type="importmap">
+										{
+											"imports": {
+												"react": "https://esm.sh/react@18.2.0",
+												"react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+												"lucide-react": "https://esm.sh/lucide-react/?deps=react@18.2.0",
+												"react-error-boundary": "https://esm.sh/react-error-boundary/?deps=react@18.2.0"
+											}
+										}
+									</${''}script>
+									<${''}script type="module" src="https://esm.sh/tsx"></${''}script>
+								</head>
+								<body>
+									<div id="root"></div>
+
+									<${''}script>
+										${jsContent}
+									</${''}script>
+
+									<${''}script type="text/babel">
+									import { createRoot } from 'react-dom/client';
+									import { ErrorBoundary } from 'react-error-boundary';
+
+									function fallbackRender({ error, resetErrorBoundary }) {
+										return (
+											<div role="alert">
+												<p>Something went wrong:</p>
+												<pre style={{ color: "red" }}>{error.message}</pre>
+											</div>
+										);
+									}
+
+
+									${jsxContent}
+									const rootElement = document.getElementById('root');
+									createRoot(rootElement).render(
+										<ErrorBoundary fallbackRender={fallbackRender}>
+											${appComponent}
+										</ErrorBoundary>
+									);
+									</${''}script>
+								</body>
+							</html>
+					`;
+					contents = [...contents, { type: 'iframe', content: renderContent }];
+				} else if (htmlContent || cssContent || jsContent) {
 					const renderedContent = `
                         <!DOCTYPE html>
                         <html lang="en">

@@ -11,6 +11,7 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import SvgPanZoom from '../common/SVGPanZoom.svelte';
 	import ArrowLeft from '../icons/ArrowLeft.svelte';
+	import { generateImportMap } from '$lib/utils/artifacts_helper';
 
 	export let overlay = false;
 	export let history;
@@ -91,6 +92,7 @@
 					const match = jsxContent.match(/export\s+(default\s+)?(\w+)/);
 					const componentName = match ? match[2] : 'App'; // 如果没有匹配到组件名称，则默认为 'App'
 					const appComponent = `<${componentName} />`;
+					const importMap = generateImportMap(jsxContent);
 
 					const renderContent = `
 						<!DOCTYPE html>
@@ -167,14 +169,7 @@
 									</${''}script>
 
 									<${''}script type="importmap">
-										{
-											"imports": {
-												"react": "https://esm.sh/react@18.2.0",
-												"react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-												"lucide-react": "https://esm.sh/lucide-react/?deps=react@18.2.0",
-												"react-error-boundary": "https://esm.sh/react-error-boundary/?deps=react@18.2.0"
-											}
-										}
+										${JSON.stringify(importMap)}
 									</${''}script>
 									<${''}script type="module" src="https://esm.sh/tsx"></${''}script>
 								</head>
@@ -189,6 +184,7 @@
 											<div id="error-message"></div>
 										</div>
 									</div>
+									${htmlContent}
 
 									<${''}script>
 										${jsContent}
@@ -218,6 +214,7 @@
 								</body>
 							</html>
 					`;
+					console.log(renderContent);
 					contents = [...contents, { type: 'iframe', content: renderContent }];
 				} else if (htmlContent || cssContent || jsContent) {
 					const renderedContent = `

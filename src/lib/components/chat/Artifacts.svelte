@@ -104,7 +104,7 @@
 										}
 										
 										/* 加载提示样式 */
-										#loading-message {
+										#loading-container {
 											position: absolute;
 											top: 50%;
 											left: 50%;
@@ -114,11 +114,57 @@
 											color: #666;
 											max-width: 80%;
 										}
+
+										#error-message {
+											display: none;
+											width: 100%;
+											border: 2px solid #ff1212;
+											background-color: #ff121203;
+											padding: 8px;
+											margin-top: 8px;
+										}
+
+										#error-message > pre {
+											color: red;
+											overflow: hidden;
+											white-space: pre-wrap;
+											word-wrap: break-word;
+										}
 										
 										${cssContent}
 									</${''}style>
 
 									<${''}script src="https://cdn.tailwindcss.com"></${''}script>
+
+									<${''}script>
+										// 保存原始 fetch 方法
+										const originalFetch = window.fetch;
+
+										// 覆写 fetch 方法以捕获错误
+										window.fetch = async function (...args) {
+											try {
+													const response = await originalFetch.apply(this, args);
+													if (!response.ok) {
+															if (response.url === 'https://esm.sh/transform' && response.status >= 400) {
+																const msg = await response.json();
+																const loadingContainer = document.getElementById('loading-message');
+																if (loadingContainer) {
+																	loadingContainer.style.display = 'none';
+																}
+																const errorContainer = document.getElementById('error-message');
+																if (errorContainer) {
+																	errorContainer.style.display = 'block';
+																	errorContainer.innerHTML = '<pre>' + msg.message + '</pre>';
+																}
+															}
+													}
+													return response;
+											} catch (error) {
+													console.error('Fetch error captured:', error);
+													throw error; // 继续抛出错误
+											}
+										};
+									</${''}script>
 
 									<${''}script type="importmap">
 										{
@@ -133,70 +179,41 @@
 									<${''}script type="module" src="https://esm.sh/tsx"></${''}script>
 								</head>
 								<body>
-									<!-- 加载提示 -->
-									<div id="loading-message">
-										<p>正在加载依赖库，这可能需要一些时间...</p>
-										<p style="font-size: 0.9em; margin-top: 8px;">如果加载时间过长，可能是程序有 bug 或不通外网没加载出来依赖。</p>
-										<p style="font-size: 0.9em; margin-top: 8px;">可以前往 playground 进一步调试：<a class="text-blue-500" href="https://artifacts-preview.ai-native.glm.ai/playground?type=react" target="_blank">https://artifacts-preview.ai-native.glm.ai/playground?type=react</a></p>
+									<div id="root">
+										<div id="loading-container">
+											<div id="loading-message">
+												<p>正在加载依赖库和编译代码，这可能需要一些时间...</p>
+												<p style="font-size: 0.9em; margin-top: 8px;">如果加载时间过长，可能是程序有 bug 或不通外网没加载出来依赖。</p>
+												<p style="font-size: 0.9em; margin-top: 8px;">可以前往 playground 进一步调试：<a class="text-blue-500" href="https://artifacts-preview.ai-native.glm.ai/playground?type=react" target="_blank">https://artifacts-preview.ai-native.glm.ai/playground?type=react</a></p>
+											</div>
+											<div id="error-message"></div>
+										</div>
 									</div>
-									
-									<div id="root" style="visibility: hidden;"></div>
 
 									<${''}script>
 										${jsContent}
 									</${''}script>
 
 									<${''}script type="text/babel">
-									import { createRoot } from 'react-dom/client';
-									import { ErrorBoundary } from 'react-error-boundary';
+										import { createRoot } from 'react-dom/client';
+										import { ErrorBoundary } from 'react-error-boundary';
 
-									function fallbackRender({ error, resetErrorBoundary }) {
-										return (
-											<div role="alert">
-												<p>Something went wrong:</p>
-												<pre style={{ color: "red" }}>{error.message}</pre>
-											</div>
-										);
-									}
-
-									${jsxContent}
-									
-									// 函数立即执行
-									(function() {
-										const loadingMessage = document.getElementById('loading-message');
-										const rootElement = document.getElementById('root');
-										
-										// 在React渲染之前隐藏加载提示
-										const renderApp = () => {
-											if (loadingMessage) loadingMessage.style.display = 'none';
-											if (rootElement) rootElement.style.visibility = 'visible';
-											
-											createRoot(rootElement).render(
-												<ErrorBoundary fallbackRender={fallbackRender}>
-													${appComponent}
-												</ErrorBoundary>
+										function fallbackRender({ error, resetErrorBoundary }) {
+											return (
+												<div role="alert">
+													<p>Something went wrong:</p>
+													<pre style={{ color: "red" }}>{error.message}</pre>
+												</div>
 											);
-										};
-										
-										// 如果所有依赖已加载完成，立即渲染
-										if (window.React && window.ReactDOM) {
-											renderApp();
-										} else {
-											// 定期检查依赖是否加载完成
-											const checkDependencies = setInterval(() => {
-												if (window.React && window.ReactDOM) {
-													clearInterval(checkDependencies);
-													renderApp();
-												}
-											}, 200);
-											
-											// 最多等待5秒，然后无论如何都渲染
-											setTimeout(() => {
-												clearInterval(checkDependencies);
-												renderApp();
-											}, 5000);
 										}
-									})();
+
+										${jsxContent}
+										const rootElement = document.getElementById('root');
+										createRoot(rootElement).render(
+											<ErrorBoundary fallbackRender={fallbackRender}>
+												${appComponent}
+											</ErrorBoundary>
+										);
 									</${''}script>
 								</body>
 							</html>
@@ -258,7 +275,22 @@
 		console.log(selectedContentIdx);
 	}
 
-	const iframeLoadHandler = () => {
+	const iframeLoadHandler = (e) => {
+		iframeElement.contentWindow.addEventListener(
+			'error',
+			function (event) {
+				console.error('inner error:', event);
+			},
+			true
+		);
+		iframeElement.contentWindow.addEventListener(
+			'unhandledrejection',
+			function (event) {
+				console.error('inner unhandledrejection:', event);
+			},
+			true
+		);
+
 		iframeElement.contentWindow.addEventListener(
 			'click',
 			function (e) {

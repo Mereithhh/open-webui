@@ -1756,6 +1756,11 @@
 		history.currentId = userMessageId;
 
 		await tick();
+
+		if (autoScroll) {
+			scrollToBottom();
+		}
+
 		await sendPrompt(history, userPrompt, userMessageId);
 	};
 
@@ -1765,6 +1770,10 @@
 		if (history.currentId) {
 			let userMessage = history.messages[message.parentId];
 			let userPrompt = userMessage.content;
+
+			if (autoScroll) {
+				scrollToBottom();
+			}
 
 			if ((userMessage?.models ?? [...selectedModels]).length == 1) {
 				// If user message has only one model selected, sendPrompt automatically selects it for regeneration

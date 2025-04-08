@@ -1126,13 +1126,16 @@ async def chat_completion(
 
     except Exception as e:
         log.debug(f"Error processing chat payload: {e}")
-        Chats.upsert_message_to_chat_by_id_and_message_id(
-            metadata["chat_id"],
-            metadata["message_id"],
-            {
-                "error": {"content": str(e)},
-            },
-        )
+        
+        # 检查 metadata 是否已初始化并包含必要字段
+        if 'metadata' in locals() and isinstance(metadata, dict) and "chat_id" in metadata and "message_id" in metadata:
+            Chats.upsert_message_to_chat_by_id_and_message_id(
+                metadata["chat_id"],
+                metadata["message_id"],
+                {
+                    "error": {"content": str(e)},
+                },
+            )
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

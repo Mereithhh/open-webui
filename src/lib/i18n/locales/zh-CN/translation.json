@@ -1180,7 +1180,7 @@
 	"Version": "版本",
 	"Version {{selectedVersion}} of {{totalVersions}}": "版本 {{selectedVersion}}/{{totalVersions}}",
 	"View Replies": "查看回复",
-	"View Result from **{{NAME}}**": "查看来自 **{{NAME}}** 的结果",
+	"View Result from **{{NAME}}**": "查看 MCP 工具 **{{NAME}}** 的结果",
 	"Visibility": "可见性",
 	"Voice": "语音",
 	"Voice Input": "语音输入",

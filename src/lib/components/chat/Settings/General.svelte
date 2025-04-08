@@ -10,6 +10,8 @@
 
 	import AdvancedParams from './Advanced/AdvancedParams.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
+	import Switch from '$lib/components/common/Switch.svelte';
+	import Segmented from '$lib/components/common/Segmented.svelte';
 
 	export let saveSettings: Function;
 	export let getModels: Function;
@@ -221,8 +223,6 @@
 			document.documentElement.style.setProperty('--color-gray-950', '#000000');
 			document.documentElement.classList.add('dark');
 		}
-
-		console.log(_theme);
 	};
 
 	const themeChangeHandler = (_theme: string) => {
@@ -240,20 +240,20 @@
 			<div class="flex w-full justify-between">
 				<div class=" self-center text-xs font-medium">{$i18n.t('Theme')}</div>
 				<div class="flex items-center relative">
-					<select
-						class=" dark:bg-gray-900 w-fit pr-8 rounded-sm py-2 px-2 text-xs bg-transparent outline-hidden text-right"
-						bind:value={selectedTheme}
-						placeholder="Select a theme"
-						on:change={() => themeChangeHandler(selectedTheme)}
-					>
-						<option value="system">⚙️ {$i18n.t('System')}</option>
-						<option value="dark">🌑 {$i18n.t('Dark')}</option>
-						<option value="oled-dark">🌃 {$i18n.t('OLED Dark')}</option>
-						<option value="light">☀️ {$i18n.t('Light')}</option>
-						<option value="her">🌷 Her</option>
-						<!-- <option value="rose-pine dark">🪻 {$i18n.t('Rosé Pine')}</option>
-						<option value="rose-pine-dawn light">🌷 {$i18n.t('Rosé Pine Dawn')}</option> -->
-					</select>
+					<Segmented
+						size="small"
+						options={[
+							{ label: $i18n.t('System'), value: 'system' },
+							{ label: $i18n.t('Light'), value: 'light' },
+							{ label: $i18n.t('Dark'), value: 'dark' }
+						]}
+						value={selectedTheme}
+						on:change={(v) => {
+							console.log(v);
+
+							themeChangeHandler(v.detail);
+						}}
+					/>
 				</div>
 			</div>
 
@@ -290,25 +290,17 @@
 			<div>
 				<div class=" py-0.5 flex w-full justify-between">
 					<div class=" self-center text-xs font-medium">{$i18n.t('Notifications')}</div>
-
-					<button
-						class="p-1 px-3 text-xs flex rounded-sm transition"
-						on:click={() => {
+					<Switch
+						state={notificationEnabled}
+						on:change={() => {
 							toggleNotification();
 						}}
-						type="button"
-					>
-						{#if notificationEnabled === true}
-							<span class="ml-2 self-center">{$i18n.t('On')}</span>
-						{:else}
-							<span class="ml-2 self-center">{$i18n.t('Off')}</span>
-						{/if}
-					</button>
+					/>
 				</div>
 			</div>
 		</div>
 
-		{#if $user?.role === 'admin' || $user?.permissions.chat?.controls}
+		{#if $user?.role === 'admin' && $user?.permissions.chat?.controls}
 			<hr class="border-gray-50 dark:border-gray-850 my-3" />
 
 			<div>

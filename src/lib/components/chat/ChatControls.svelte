@@ -4,7 +4,14 @@
 	import { Pane, PaneResizer } from 'paneforge';
 
 	import { onDestroy, onMount, tick } from 'svelte';
-	import { mobile, showControls, showCallOverlay, showOverview, showArtifacts } from '$lib/stores';
+	import {
+		mobile,
+		showControls,
+		showCallOverlay,
+		showOverview,
+		showArtifacts,
+		user
+	} from '$lib/stores';
 
 	import Modal from '../common/Modal.svelte';
 	import Controls from './Controls/Controls.svelte';
@@ -177,7 +184,7 @@
 								showControls.set(false);
 							}}
 						/>
-					{:else}
+					{:else if $user?.role === 'admin'}
 						<Controls
 							on:close={() => {
 								showControls.set(false);
@@ -186,6 +193,10 @@
 							bind:chatFiles
 							bind:params
 						/>
+					{:else}
+						{(() => {
+							showControls.set(false);
+						})()}
 					{/if}
 				</div>
 			</Drawer>
@@ -264,7 +275,7 @@
 									showControls.set(false);
 								}}
 							/>
-						{:else}
+						{:else if $user?.role === 'admin'}
 							<Controls
 								on:close={() => {
 									showControls.set(false);
@@ -273,6 +284,10 @@
 								bind:chatFiles
 								bind:params
 							/>
+						{:else}
+							{(() => {
+								showControls.set(false);
+							})()}
 						{/if}
 					</div>
 				</div>

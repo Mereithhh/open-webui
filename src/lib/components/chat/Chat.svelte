@@ -131,6 +131,13 @@
 		currentId: null
 	};
 
+	$: {
+		if (Object.keys(history.messages).length) {
+			showControls.set(previewModeEnabled);
+			showArtifacts.set(previewModeEnabled);
+		}
+	}
+
 	let taskId = null;
 
 	// Chat Input
@@ -698,7 +705,7 @@
 			}
 		}
 
-		await showControls.set(true);
+		$user?.role === 'admin' && (await showControls.set(true));
 		await showCallOverlay.set(false);
 		await showOverview.set(false);
 

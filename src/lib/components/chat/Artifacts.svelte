@@ -339,14 +339,7 @@
 		{/if}
 
 		<div class="absolute pointer-events-none z-50 w-full flex items-center justify-start p-4">
-			<button
-				class="self-center pointer-events-auto p-1 rounded-full bg-white dark:bg-gray-850"
-				on:click={() => {
-					showArtifacts.set(false);
-				}}
-			>
-				<ArrowLeft className="size-3.5  text-gray-900 dark:text-white" />
-			</button>
+			{$i18n.t('PreviewMode')}
 		</div>
 
 		<div class=" absolute pointer-events-none z-50 w-full flex items-center justify-end p-4">

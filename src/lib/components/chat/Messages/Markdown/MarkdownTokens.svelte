@@ -178,7 +178,7 @@
 		{#if alert}
 			<AlertRenderer {token} {alert} />
 		{:else}
-			<blockquote dir="auto">
+			<blockquote dir="auto" class=" text-sm" style="color: gray;">
 				<svelte:self id={`${id}-${tokenIdx}`} tokens={token.tokens} {onTaskClick} {onSourceClick} />
 			</blockquote>
 		{/if}
@@ -253,7 +253,7 @@
 			title={token.summary}
 			open={$settings?.expandDetails ?? false}
 			attributes={token?.attributes}
-			className="w-full space-y-1"
+			className="w-full space-y-1 mb-3"
 			dir="auto"
 		>
 			<div class=" mb-1.5" slot="content">

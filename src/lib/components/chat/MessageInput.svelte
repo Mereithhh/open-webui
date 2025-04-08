@@ -101,6 +101,9 @@
 		mcpServerEnabled
 	});
 
+	// 隐藏掉一些暂未开放的功能
+	let featureSupported = false;
+
 	let showTools = false;
 
 	let loaded = false;
@@ -422,11 +425,12 @@
 										<div class="text-ellipsis line-clamp-1 flex">
 											{#each selectedMCPServers as server, serverIdx}
 												<Tooltip
-													content={$config?.mcp_servers?.find(s => s.name === server)?.description ?? ''}
+													content={$config?.mcp_servers?.find((s) => s.name === server)
+														?.description ?? ''}
 													className="{serverIdx !== 0 ? 'pl-0.5' : ''} shrink-0"
 													placement="top"
 												>
-													{$config?.mcp_servers?.find(s => s.name === server)?.name ?? server}
+													{$config?.mcp_servers?.find((s) => s.name === server)?.name ?? server}
 												</Tooltip>
 
 												{#if serverIdx !== selectedMCPServers.length - 1}
@@ -437,7 +441,7 @@
 									</div>
 								</div>
 							{/if}
-							
+
 							{#if selectedToolIds.length > 0}
 								<div class="flex items-center justify-between w-full">
 									<div class="flex items-center gap-2.5 text-sm dark:text-gray-500">
@@ -1226,6 +1230,8 @@
 												class="bg-transparent hover:bg-gray-100 text-gray-800 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-1.5 outline-hidden focus:outline-hidden"
 												type="button"
 												aria-label="More"
+												hidden
+												disabled={!featureSupported}
 											>
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
@@ -1281,17 +1287,19 @@
 														>
 													</button>
 												</Tooltip>
-												
-												{#if $config?.mcp_servers && $config.mcp_servers.length > 0}
-													<Tooltip content={$i18n.t('MCP Server')} placement="top">
+
+												{#if true || ($config?.mcp_servers && $config.mcp_servers.length > 0)}
+													<Tooltip content={$i18n.t('Coming soon')} placement="top">
 														<button
 															on:click|preventDefault={() => {
 																showMCPServerModal = true;
 															}}
 															type="button"
-															class="px-1.5 @sm:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-none max-w-full overflow-hidden {selectedMCPServers.length > 0
+															disabled
+															class="px-1.5 @sm:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-none max-w-full overflow-hidden cursor-not-allowed {selectedMCPServers.length >
+															0
 																? 'bg-purple-100 dark:bg-purple-500/20 text-purple-500 dark:text-purple-400'
-																: 'bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+																: 'bg-transparent text-gray-300 dark:text-gray-600 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 														>
 															<Server className=" size-4" strokeWidth="1.5" />
 															<span
@@ -1302,15 +1310,16 @@
 													</Tooltip>
 												{/if}
 
-												{#if $config?.features?.enable_web_search && ($_user.role === 'admin' || $_user?.permissions?.features?.web_search)}
-													<Tooltip content={$i18n.t('Search the internet')} placement="top">
+												{#if true || ($config?.features?.enable_web_search && ($_user.role === 'admin' || $_user?.permissions?.features?.web_search))}
+													<Tooltip content={$i18n.t('Coming soon')} placement="top">
 														<button
 															on:click|preventDefault={() => (webSearchEnabled = !webSearchEnabled)}
 															type="button"
-															class="px-1.5 @xl:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {webSearchEnabled ||
+															disabled
+															class="px-1.5 @xl:px-2.5 py-1.5 flex gap-1.5 items-center text-sm rounded-full font-medium transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden cursor-not-allowed {webSearchEnabled ||
 															($settings?.webSearch ?? false) === 'always'
 																? 'bg-blue-100 dark:bg-blue-500/20 text-blue-500 dark:text-blue-400'
-																: 'bg-transparent text-gray-600 dark:text-gray-300 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}"
+																: 'bg-transparent text-gray-300 dark:text-gray-600 border-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}"
 														>
 															<GlobeAlt className="size-5" strokeWidth="1.75" />
 															<span
@@ -1340,7 +1349,7 @@
 													</Tooltip>
 												{/if}
 
-												{#if $config?.features?.enable_code_interpreter && ($_user.role === 'admin' || $_user?.permissions?.features?.code_interpreter)}
+												{#if featureSupported && $config?.features?.enable_code_interpreter && ($_user.role === 'admin' || $_user?.permissions?.features?.code_interpreter)}
 													<Tooltip content={$i18n.t('Execute code for analysis')} placement="top">
 														<button
 															on:click|preventDefault={() =>
@@ -1363,7 +1372,7 @@
 									</div>
 
 									<div class="self-end flex space-x-1 mr-1 shrink-0">
-										{#if !history?.currentId || history.messages[history.currentId]?.done == true}
+										{#if featureSupported && (!history?.currentId || history.messages[history.currentId]?.done == true)}
 											<Tooltip content={$i18n.t('Record voice')}>
 												<button
 													id="voice-input-button"
@@ -1413,7 +1422,7 @@
 										{/if}
 
 										{#if !history.currentId || history.messages[history.currentId]?.done == true}
-											{#if prompt === '' && files.length === 0}
+											{#if featureSupported && prompt === '' && files.length === 0}
 												<div class=" flex items-center">
 													<Tooltip content={$i18n.t('Call')}>
 														<button
@@ -1545,7 +1554,7 @@
 	</div>
 {/if}
 
-<MCPServerModal 
+<MCPServerModal
 	bind:show={showMCPServerModal}
 	bind:selectedServers={selectedMCPServers}
 	on:close={() => {

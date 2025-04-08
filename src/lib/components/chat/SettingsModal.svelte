@@ -27,12 +27,14 @@
 		id: string;
 		title: string;
 		keywords: string[];
+		visible: boolean;
 	}
 
 	const searchData: SettingsTab[] = [
 		{
 			id: 'general',
 			title: 'General',
+			visible: true,
 			keywords: [
 				'general',
 				'theme',
@@ -56,6 +58,7 @@
 		{
 			id: 'interface',
 			title: 'Interface',
+			visible: true,
 			keywords: [
 				'defaultmodel',
 				'selectmodel',
@@ -126,16 +129,19 @@
 		{
 			id: 'connections',
 			title: 'Connections',
+			visible: false,
 			keywords: []
 		},
 		{
 			id: 'tools',
 			title: 'Tools',
+			visible: false,
 			keywords: []
 		},
 		{
 			id: 'personalization',
 			title: 'Personalization',
+			visible: false,
 			keywords: [
 				'personalization',
 				'memory',
@@ -151,6 +157,7 @@
 		{
 			id: 'audio',
 			title: 'Audio',
+			visible: false,
 			keywords: [
 				'audio',
 				'sound',
@@ -196,6 +203,7 @@
 		{
 			id: 'chats',
 			title: 'Chats',
+			visible: true,
 			keywords: [
 				'chat',
 				'messages',
@@ -215,6 +223,7 @@
 		{
 			id: 'account',
 			title: 'Account',
+			visible: true,
 			keywords: [
 				'account',
 				'profile',
@@ -236,6 +245,7 @@
 		},
 		{
 			id: 'admin',
+			visible: $user?.role === 'admin',
 			title: 'Admin',
 			keywords: [
 				'admin',
@@ -268,6 +278,7 @@
 		{
 			id: 'about',
 			title: 'About',
+			visible: true,
 			keywords: [
 				'about',
 				'info',
@@ -295,7 +306,7 @@
 	];
 
 	let search = '';
-	let visibleTabs = searchData.map((tab) => tab.id);
+	let visibleTabs = searchData.filter((tab) => tab.visible).map((tab) => tab.id);
 	let searchDebounceTimeout;
 
 	const searchSettings = (query: string): string[] => {
@@ -303,8 +314,9 @@
 		return searchData
 			.filter(
 				(tab) =>
-					tab.title.toLowerCase().includes(lowerCaseQuery) ||
-					tab.keywords.some((keyword) => keyword.includes(lowerCaseQuery))
+					tab.visible &&
+					(tab.title.toLowerCase().includes(lowerCaseQuery) ||
+						tab.keywords.some((keyword) => keyword.includes(lowerCaseQuery)))
 			)
 			.map((tab) => tab.id);
 	};

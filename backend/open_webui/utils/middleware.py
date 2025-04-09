@@ -22,6 +22,7 @@ from fastapi import Request, HTTPException
 from starlette.responses import Response, StreamingResponse
 
 
+from open_webui.utils.stream_filter import StreamFilter
 from open_webui.models.chats import Chats
 from open_webui.models.users import Users
 from open_webui.socket.main import (
@@ -1239,61 +1240,13 @@ async def process_chat_response(
                         # 使用新的MCP UI函数处理工具调用
                         tool_calls_content = serialize_mcp_tool_calls(block, raw)
                         content = f"{content}\n{tool_calls_content}\n"
-                        # attributes = block.get("attributes", {})
-
-                        # tool_calls = block.get("content", [])
-                        # results = block.get("results", [])
-
-                        # if results:
-
-                        #     tool_calls_display_content = ""
-                        #     for tool_call in tool_calls:
-
-                        #         tool_call_id = tool_call.get("id", "")
-                        #         tool_name = tool_call.get("function", {}).get(
-                        #             "name", ""
-                        #         )
-                        #         tool_arguments = tool_call.get("function", {}).get(
-                        #             "arguments", ""
-                        #         )
-
-                        #         tool_result = None
-                        #         tool_result_files = None
-                        #         for result in results:
-                        #             if tool_call_id == result.get("tool_call_id", ""):
-                        #                 tool_result = result.get("content", None)
-                        #                 tool_result_files = result.get("files", None)
-                        #                 break
-
-                        #         if tool_result:
-                        #             tool_calls_display_content = f'{tool_calls_display_content}\n<details type="tool_calls" done="true" id="{tool_call_id}" name="{tool_name}" arguments="{html.escape(json.dumps(tool_arguments))}" result="{html.escape(json.dumps(tool_result))}" files="{html.escape(json.dumps(tool_result_files)) if tool_result_files else ""}">\n<summary>Tool Executed</summary>\n</details>\n'
-                        #         else:
-                        #             tool_calls_display_content = f'{tool_calls_display_content}\n<details type="tool_calls" done="false" id="{tool_call_id}" name="{tool_name}" arguments="{html.escape(json.dumps(tool_arguments))}">\n<summary>Executing...</summary>\n</details>'
-
-                        #     if not raw:
-                        #         content = f"{content}\n{tool_calls_display_content}\n\n"
-                        # else:
-                        #     tool_calls_display_content = ""
-
-                            # for tool_call in tool_calls:
-                            #     tool_call_id = tool_call.get("id", "")
-                            #     tool_name = tool_call.get("function", {}).get(
-                            #         "name", ""
-                            #     )
-                            #     tool_arguments = tool_call.get("function", {}).get(
-                            #         "arguments", ""
-                            #     )
-
-                            #     tool_calls_display_content = f'{tool_calls_display_content}\n<details type="tool_calls" done="false" id="{tool_call_id}" name="{tool_name}" arguments="{html.escape(json.dumps(tool_arguments))}">\n<summary>Executing...</summary>\n</details>'
-
-                            # if not raw:
-                            #     content = f"{content}\n{tool_calls_display_content}\n\n"
 
                     elif block["type"] == "reasoning":
                         reasoning_display_content = "\n".join(
                             (f"> {line}" if not line.startswith(">") else line)
                             for line in block["content"].splitlines()
                         )
+                        # log.info(f"reasoning_display_content: {reasoning_display_content}")
 
                         reasoning_duration = block.get("duration", None)
 
@@ -1604,10 +1557,23 @@ async def process_chat_response(
                     nonlocal content_blocks
 
                     response_tool_calls = []
+                    
+                    # 下面的配置都只针对 all tools 格式 api 生效
+                    filter_config = [
+                        {"pattern": "<think>", "ignore_after": False},
+                        {"pattern": "</think>", "ignore_after": True},
+                        # {"pattern": "```python", "ignore_after": True},
+                    ]
+                    stream_filter = StreamFilter(filter_config)
+                    last_fc_name = ""
+                    chunk_idx = 0
+                    # 5 包之后再发送
+                    BOOT_START_CHUNK = 2
 
                     async for line in response.body_iterator:
                         line = line.decode("utf-8") if isinstance(line, bytes) else line
                         data = line
+                        
 
                         # Skip empty lines
                         if not data.strip():
@@ -1621,8 +1587,197 @@ async def process_chat_response(
                         data = data[len("data:") :].strip()
 
                         try:
+                            raw_str=data
                             data = json.loads(data)
+                            chunk_idx += 1
+                            
+                            
+                            if data.get("message", {}).get("status", None) != None:
+                                # log.info(f"自定义数据包: {raw_str}")
+                                # 处理自定义API响应格式
+                                message = data.get("message", {})
+                                status = message.get("status", "")
+                                content_data = message.get("content", {})
+                                content_type = content_data.get("content_type", "")
+                                content_text = content_data.get("content", "")
+                                
 
+                                
+                                # 根据不同的content_type处理内容
+                                if content_type == "think":
+                                    # 处理思考内容
+                                    if status == "in_progress":
+                                        content_text, intercepted, status = stream_filter.add(content_text)
+                                        # 上一次不是 reasoning 就新加，合理。
+                                        if not content_blocks or content_blocks[-1]["type"] != "reasoning":
+                                            content_text = content_text.lstrip()
+                                            content_blocks.append({
+                                                "type": "reasoning",
+                                                "start_tag": "think",
+                                                "end_tag": "/think",
+                                                "attributes": {},
+                                                "content": content_text,
+                                                "started_at": time.time(),
+                                            })
+                                        else:
+                                            content_blocks[-1]["content"] += content_text
+                                    elif status == "completed":
+                                        stream_filter.reset()
+                                        # 完成思考，用去掉 fc 描述的去替换之前的
+                                        # 提取</think>后面的JSON
+                                        content_text = content_text.lstrip()
+                                        think_content = content_text
+                                        json_start = think_content.rfind("</think>")
+                                        json_text = ""
+                                        pure_text = ""
+                                        if json_start != -1:
+                                            json_text = think_content[json_start + 8:].strip()
+                                            pure_text = think_content[:json_start + 8].strip()
+                                        pure_text = pure_text.lstrip().replace("<think>", "").replace("</think>", "")
+                                        
+                                        content_blocks[-1]["content"] = pure_text
+                                        content_blocks[-1]["ended_at"] = time.time()
+                                        content_blocks[-1]["duration"] = int(content_blocks[-1]["ended_at"] - content_blocks[-1]["started_at"])
+                                    
+                                        # 检查思考内容后面是否有函数调用的JSON
+                                        try:
+                                            # 提取</think>后面的JSON
+                                            if json_text:
+                                                func_call = json.loads(json_text)
+                                                if "name" in func_call:
+                                                    # 构建工具调用
+                                                    tool_call = {
+                                                        "id": str(uuid4()),
+                                                        "function": {
+                                                            "name": func_call.get("name", ""),
+                                                            "arguments": json.dumps(func_call.get("arguments", {}))
+                                                        }
+                                                    }
+                                                    log.info(f"工具调用: {tool_call}")
+                                                    #! 本身已经处理了 tools，这里不需要加进去，不然后面还会处理就不行了。
+                                                    # response_tool_calls = [tool_call]
+                                                    # tool_calls.append(response_tool_calls)
+                                                    #! 工具调用通过 text 块返回给前端
+                                                    fc_name = func_call.get('name', '')
+                                                    last_fc_name = fc_name
+                                                    if fc_name != "finish":
+                                                        if fc_name == "browser_search" or fc_name == "search":
+                                                            content_blocks.append({
+                                                                "type": "text",
+                                                                "content": f"- **搜索关键词: `{func_call.get('arguments', {}).get('query', '')}`**",
+                                                            })
+                                                        elif fc_name == "open":
+                                                            content_blocks.append({
+                                                                "type": "text",
+                                                                "content": f"- **打开链接: `{func_call.get('arguments', {}).get('url', '')}`**",
+                                                            })
+                                                        else:
+                                                            content_blocks.append({
+                                                                "type": "text",
+                                                                "content": f"- **触发 `{func_call.get('name', '')}` 工具，参数为 `{json.dumps(func_call.get('arguments', {}), ensure_ascii=False)}`**",
+                                                            })
+                                        except Exception as e:
+                                            log.debug(f"解析函数调用失败: {e}")
+                                
+                                elif content_type == "text":
+                                    # 处理文本内容
+                                    if status == "in_progress":
+                                        # 增量更新文本内容
+                                        if not content_blocks or content_blocks[-1]["type"] != "text":
+                                            content_blocks.append({
+                                                "type": "text",
+                                                "content": content_text,
+                                            })
+                                        else:
+                                            content_blocks[-1]["content"] += content_text
+                                    elif status == "completed":
+                                        content_blocks[-1]["content"] = content_text
+                                        
+                                        #! 废弃这个逻辑， 处理引用信息，添加到文本末尾
+                                        # citations = message.get("metadata", {}).get("citations", [])
+                                        # if citations:
+                                        #     citation_text = "\n\n**参考资料:**\n"
+                                        #     for i, citation in enumerate(citations):
+                                        #         metadata = citation.get("metadata", {})
+                                        #         title = metadata.get("title", "未知来源")
+                                        #         url = metadata.get("url", "")
+                                        #         citation_text += f"{i+1}. [{title}]({url})\n"
+                                            
+                                        #     # 添加引用信息到最后一个文本块
+                                        #     content_blocks[-1]["content"] += citation_text
+                                
+                                elif content_type == "browser_result":
+                                    # 处理浏览器结果
+                                    sources = []
+                                    citations = message.get("metadata", {}).get("metadata_list", [])
+                                    search_info_data = []
+                                    if citations:
+                                        for citation in citations:
+                                            
+                                            title = citation.get("title", "未知来源")
+                                            url = citation.get("url", "")
+                                            text = citation.get("text", "")
+                                            media = citation.get("media", title)
+                                            citation_type = citation.get("type", "")
+                                            
+                                            
+                                            
+                                            search_info_data.append({
+                                                "title": title,
+                                                "url": url,
+                                                "text": text,
+                                                "media": media,
+                                                "type": citation_type,
+                                            })
+                                            
+                                            sources.append({
+                                                "source": {
+                                                    "name": title,
+                                                    "url": url,
+                                                },
+                                                "document": [text],
+                                                "metadata": [{"source": media}],
+                                            })
+                                    #! 自定义块协议
+                                    # content_blocks.append({
+                                    #     "type": "search_info",
+                                    #     "data": search_info_data,
+                                    # })
+                                    search_info_data_markdown = ""
+                                    for item in search_info_data:
+                                        search_info_data_markdown += f"> [{item.get('title', '')}]({item.get('url', '')}) \n"
+                                    if not search_info_data_markdown:
+                                        search_info_data_markdown = "> 暂无结果"
+                                    sub_title = "搜索结果"
+                                    if last_fc_name == "open":
+                                        sub_title = "打开链接"
+                                    content_blocks.append({
+                                        "type": "text",
+                                        "content": f"- **{sub_title}:** \n{search_info_data_markdown}",
+                                    })
+                                    #! 这个没必要添加 source
+                                    # if sources:
+                                        # 添加sources到全局事件
+                                        # events.append({"sources": sources})
+                                        # 向前端发送引用信息
+                                        # await event_emitter({
+                                        #     "type": "chat:completion",
+                                        #     "data": {"sources": sources},
+                                        # })
+                                
+                                # log.info(f"向前端发送更新通知: {json.dumps(content_blocks, ensure_ascii=False)}")
+                                # 为每次更新发送内容到前端
+                                if chunk_idx > BOOT_START_CHUNK:
+                                    await event_emitter({
+                                        "type": "chat:completion",
+                                        "data": {
+                                            "content": serialize_content_blocks(content_blocks),
+                                        },
+                                    })
+                                
+                                # 跳过后续常规处理
+                                continue
+                                
                             data, _ = await process_filter_functions(
                                 request=request,
                                 filter_functions=filter_functions,
@@ -1923,34 +2078,6 @@ async def process_chat_response(
                         for tool_call in response_tool_calls:
                             tool_call_id = tool_call.get("id", "")
                             tool_name = tool_call.get("function", {}).get("name", "")
-                    # for tool_call in response_tool_calls:
-                    #     tool_call_id = tool_call.get("id", "")
-                    #     tool_name = tool_call.get("function", {}).get("name", "")
-
-                    #     tool_function_params = {}
-                    #     try:
-                    #         # json.loads cannot be used because some models do not produce valid JSON
-                    #         tool_function_params = ast.literal_eval(
-                    #             tool_call.get("function", {}).get("arguments", "{}")
-                    #         )
-                    #     except Exception as e:
-                    #         log.debug(e)
-                    #         # Fallback to JSON parsing
-                    #         try:
-                    #             tool_function_params = json.loads(
-                    #                 tool_call.get("function", {}).get("arguments", "{}")
-                    #             )
-                    #         except Exception as e:
-                    #             log.debug(
-                    #                 f"Error parsing tool call arguments: {tool_call.get('function', {}).get('arguments', '{}')}"
-                    #             )
-
-                    #     tool_result = None
-
-                    #     if tool_name in tools:
-                    #         tool = tools[tool_name]
-                    #         spec = tool.get("spec", {})
-
 
                             tool_function_params = {}
                             try:
@@ -1958,46 +2085,9 @@ async def process_chat_response(
                                 tool_function_params = ast.literal_eval(
                                     tool_call.get("function", {}).get("arguments", "{}")
                                 )
-# =======
-#                                 allowed_params = (
-#                                     spec.get("parameters", {})
-#                                     .get("properties", {})
-#                                     .keys()
-#                                 )
-
-#                                 tool_function_params = {
-#                                     k: v
-#                                     for k, v in tool_function_params.items()
-#                                     if k in allowed_params
-#                                 }
-
-#                                 if tool.get("direct", False):
-#                                     tool_result = await event_caller(
-#                                         {
-#                                             "type": "execute:tool",
-#                                             "data": {
-#                                                 "id": str(uuid4()),
-#                                                 "name": tool_name,
-#                                                 "params": tool_function_params,
-#                                                 "server": tool.get("server", {}),
-#                                                 "session_id": metadata.get(
-#                                                     "session_id", None
-#                                                 ),
-#                                             },
-#                                         }
-#                                     )
-
-#                                 else:
-#                                     tool_function = tool["callable"]
-#                                     tool_result = await tool_function(
-#                                         **tool_function_params
-#                                     )
-
-# >>>>>>> upstream/main
                             except Exception as e:
                                 log.debug(e)
 
-# <<<<<<< HEAD
                             tool_result = None
 
                             if tool_name in tools:
@@ -2026,32 +2116,6 @@ async def process_chat_response(
                                     "content": tool_result,
                                 }
                             )
-# =======
-#                         tool_result_files = []
-#                         if isinstance(tool_result, list):
-#                             for item in tool_result:
-#                                 # check if string
-#                                 if isinstance(item, str) and item.startswith("data:"):
-#                                     tool_result_files.append(item)
-#                                     tool_result.remove(item)
-
-#                         if isinstance(tool_result, dict) or isinstance(
-#                             tool_result, list
-#                         ):
-#                             tool_result = json.dumps(tool_result, indent=2)
-
-#                         results.append(
-#                             {
-#                                 "tool_call_id": tool_call_id,
-#                                 "content": tool_result,
-#                                 **(
-#                                     {"files": tool_result_files}
-#                                     if tool_result_files
-#                                     else {}
-#                                 ),
-#                             }
-#                         )
-# >>>>>>> upstream/main
 
                     content_blocks[-1]["results"] = results
 

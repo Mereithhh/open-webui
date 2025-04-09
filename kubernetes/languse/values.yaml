@@ -1,0 +1,24 @@
+global:
+  defaultStorageClass: "alibabacloud-cnfs-nas"
+clickhouse:
+  auth:
+    password: clickhouse
+langfuse:
+  nextauth:
+    secret:
+      value: nextauth
+  salt:
+    value: e73067ec8385a71bb6fae8cc11f1cd8b2e9b95dcbb61c65b02809f53f410654a
+  web:
+    service:
+      port: 3000
+      type: ClusterIP
+postgresql:
+  auth:
+    password: postgre
+redis:
+  auth:
+    password: redis
+s3:
+  auth:
+    rootPassword: minio000000

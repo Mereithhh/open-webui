@@ -39,8 +39,6 @@
 	import Markdown from '../chat/Messages/Markdown.svelte';
 	import Image from './Image.svelte';
 
-	export let open = false;
-
 	export let className = '';
 	export let buttonClassName =
 		'w-fit text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition';
@@ -48,6 +46,10 @@
 	export let id = '';
 	export let title = null;
 	export let attributes = null;
+	export let open = false;
+	$: if (attributes?.done !== undefined) {
+		open = !(attributes.done === 'true');
+	}
 
 	export let chevron = false;
 	export let grow = false;

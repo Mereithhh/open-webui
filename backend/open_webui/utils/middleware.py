@@ -1243,9 +1243,9 @@ async def process_chat_response(
 
 
                     elif block["type"] == "tool_call":
-                        content = f'{content}\n<glm_block>{json.dumps(block["data"], ensure_ascii=False)}</glm_block>\n'
+                        content = f'{content}\n<glm_block >{json.dumps(block["data"], ensure_ascii=False)}</glm_block>\n'
                     elif block["type"] == "tool_result":
-                        content = f'{content}\n<glm_block>{json.dumps(block["data"], ensure_ascii=False)}</glm_block>\n'
+                        content = f'{content}\n<glm_block >{json.dumps(block["data"], ensure_ascii=False)}</glm_block>\n'
 
                     elif block["type"] == "reasoning":
                         reasoning_display_content = "\n".join(

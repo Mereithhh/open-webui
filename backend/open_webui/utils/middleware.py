@@ -1241,6 +1241,12 @@ async def process_chat_response(
                         tool_calls_content = serialize_mcp_tool_calls(block, raw)
                         content = f"{content}\n{tool_calls_content}\n"
 
+
+                    elif block["type"] == "tool_call":
+                        content = f'{content}\n<details type="tool_call" >{json.dumps(block["data"], ensure_ascii=False)}</details>\n'
+                    elif block["type"] == "tool_result":
+                        content = f'{content}\n<details type="tool_result" >{json.dumps(block["data"], ensure_ascii=False)}</details>\n'
+
                     elif block["type"] == "reasoning":
                         reasoning_display_content = "\n".join(
                             (f"> {line}" if not line.startswith(">") else line)
@@ -1655,27 +1661,32 @@ async def process_chat_response(
                                                     }
                                                     log.info(f"工具调用: {tool_call}")
                                                     #! 本身已经处理了 tools，这里不需要加进去，不然后面还会处理就不行了。
-                                                    # response_tool_calls = [tool_call]
-                                                    # tool_calls.append(response_tool_calls)
                                                     #! 工具调用通过 text 块返回给前端
                                                     fc_name = func_call.get('name', '')
                                                     last_fc_name = fc_name
                                                     if fc_name != "finish":
-                                                        if fc_name == "browser_search" or fc_name == "search":
-                                                            content_blocks.append({
-                                                                "type": "text",
-                                                                "content": f"- **搜索关键词: `{func_call.get('arguments', {}).get('query', '')}`**",
-                                                            })
-                                                        elif fc_name == "open":
-                                                            content_blocks.append({
-                                                                "type": "text",
-                                                                "content": f"- **打开链接: `{func_call.get('arguments', {}).get('url', '')}`**",
-                                                            })
-                                                        else:
-                                                            content_blocks.append({
-                                                                "type": "text",
-                                                                "content": f"- **触发 `{func_call.get('name', '')}` 工具，参数为 `{json.dumps(func_call.get('arguments', {}), ensure_ascii=False)}`**",
-                                                            })
+                                                        # if fc_name == "browser_search" or fc_name == "search":
+                                                        content_blocks.append({
+                                                            "type": "tool_call",
+                                                            "data": {
+                                                                "name": fc_name,
+                                                                "arguments": func_call.get('arguments', {}),
+                                                            }
+                                                        })
+                                                            # content_blocks.append({
+                                                            #     "type": "text",
+                                                            #     "content": f"- **搜索关键词: `{func_call.get('arguments', {}).get('query', '')}`**",
+                                                            # })
+                                                        # elif fc_name == "open":
+                                                        #     content_blocks.append({
+                                                        #         "type": "text",
+                                                        #         "content": f"- **打开链接: `{func_call.get('arguments', {}).get('url', '')}`**",
+                                                        #     })
+                                                        # else:
+                                                        #     content_blocks.append({
+                                                        #         "type": "text",
+                                                        #         "content": f"- **触发 `{func_call.get('name', '')}` 工具，参数为 `{json.dumps(func_call.get('arguments', {}), ensure_ascii=False)}`**",
+                                                        #     })
                                         except Exception as e:
                                             log.debug(f"解析函数调用失败: {e}")
                                 
@@ -1710,7 +1721,8 @@ async def process_chat_response(
                                     # 处理浏览器结果
                                     sources = []
                                     citations = message.get("metadata", {}).get("metadata_list", [])
-                                    search_info_data = []
+                                    
+                                    citations_results = []
                                     if citations:
                                         for citation in citations:
                                             
@@ -1719,16 +1731,16 @@ async def process_chat_response(
                                             text = citation.get("text", "")
                                             media = citation.get("media", title)
                                             citation_type = citation.get("type", "")
-                                            
-                                            
-                                            
-                                            search_info_data.append({
+                                            citations_results.append({
                                                 "title": title,
                                                 "url": url,
                                                 "text": text,
                                                 "media": media,
                                                 "type": citation_type,
                                             })
+                                            
+                                            
+                                            
                                             
                                             sources.append({
                                                 "source": {
@@ -1739,22 +1751,25 @@ async def process_chat_response(
                                                 "metadata": [{"source": media}],
                                             })
                                     #! 自定义块协议
-                                    # content_blocks.append({
-                                    #     "type": "search_info",
-                                    #     "data": search_info_data,
-                                    # })
-                                    search_info_data_markdown = ""
-                                    for item in search_info_data:
-                                        search_info_data_markdown += f"> [{item.get('title', '')}]({item.get('url', '')}) \n"
-                                    if not search_info_data_markdown:
-                                        search_info_data_markdown = "> 暂无结果"
-                                    sub_title = "搜索结果"
-                                    if last_fc_name == "open":
-                                        sub_title = "打开链接"
                                     content_blocks.append({
-                                        "type": "text",
-                                        "content": f"- **{sub_title}:** \n{search_info_data_markdown}",
+                                        "type": "tool_result",
+                                        "data": {
+                                            "name": "browser_search",
+                                            "result": citations_results
+                                        }
                                     })
+                                    # search_info_data_markdown = ""
+                                    # for item in search_info_data:
+                                    #     search_info_data_markdown += f"> [{item.get('title', '')}]({item.get('url', '')}) \n"
+                                    # if not search_info_data_markdown:
+                                    #     search_info_data_markdown = "> 暂无结果"
+                                    # sub_title = "搜索结果"
+                                    # if last_fc_name == "open":
+                                    #     sub_title = "打开链接"
+                                    # content_blocks.append({
+                                    #     "type": "text",
+                                    #     "content": f"- **{sub_title}:** \n{search_info_data_markdown}",
+                                    # })
                                     #! 这个没必要添加 source
                                     # if sources:
                                         # 添加sources到全局事件

@@ -1243,9 +1243,9 @@ async def process_chat_response(
 
 
                     elif block["type"] == "tool_call":
-                        content = f'{content}\n<details type="tool_call" >{json.dumps(block["data"], ensure_ascii=False)}</details>\n'
+                        content = f'{content}\n<glm_block>{json.dumps(block["data"], ensure_ascii=False)}</glm_block>\n'
                     elif block["type"] == "tool_result":
-                        content = f'{content}\n<details type="tool_result" >{json.dumps(block["data"], ensure_ascii=False)}</details>\n'
+                        content = f'{content}\n<glm_block>{json.dumps(block["data"], ensure_ascii=False)}</glm_block>\n'
 
                     elif block["type"] == "reasoning":
                         reasoning_display_content = "\n".join(
@@ -1669,8 +1669,11 @@ async def process_chat_response(
                                                         content_blocks.append({
                                                             "type": "tool_call",
                                                             "data": {
-                                                                "name": fc_name,
-                                                                "arguments": func_call.get('arguments', {}),
+                                                                "type": "tool_call",
+                                                                "data": {
+                                                                    "name": fc_name,
+                                                                    "arguments": func_call.get('arguments', {}),
+                                                                }
                                                             }
                                                         })
                                                             # content_blocks.append({
@@ -1754,8 +1757,11 @@ async def process_chat_response(
                                     content_blocks.append({
                                         "type": "tool_result",
                                         "data": {
-                                            "name": "browser_search",
-                                            "result": citations_results
+                                            "type": "tool_result",
+                                            "data": {
+                                                "name": "browser_search",
+                                                "result": citations_results
+                                            }
                                         }
                                     })
                                     # search_info_data_markdown = ""

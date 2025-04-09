@@ -8,6 +8,7 @@ import shutil
 import sys
 import time
 import random
+from functools import wraps
 
 from contextlib import asynccontextmanager
 from urllib.parse import urlencode, parse_qs, urlparse
@@ -98,6 +99,9 @@ from open_webui.config import (
     ENABLE_OLLAMA_API,
     OLLAMA_BASE_URLS,
     OLLAMA_API_CONFIGS,
+    # 魔改
+    ENABLE_UPLOAD_IMAGE,
+    ENABLE_ARTIFACTS_MODE,
     # OpenAI
     ENABLE_OPENAI_API,
     ONEDRIVE_CLIENT_ID,
@@ -413,6 +417,30 @@ https://github.com/open-webui/open-webui
 """
 )
 
+def condition_check(
+    condition, status_code=status.HTTP_404_NOT_FOUND, detail=""
+):
+    """检查是否符合条件，否则返回特定状态码，目前用于 fg 控制"""
+
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            if isinstance(condition, bool):
+                condition_met = condition
+            elif inspect.iscoroutinefunction(condition):
+                condition_met = await condition(*args, **kwargs)
+            else:
+                condition_met = condition(*args, **kwargs)
+
+            if not condition_met:
+                raise HTTPException(status_code=status_code, detail=detail)
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -458,6 +486,15 @@ if ENABLE_OTEL:
     from open_webui.utils.telemetry.setup import setup as setup_opentelemetry
 
     setup_opentelemetry(app=app, db_engine=engine)
+
+########################################
+#
+# 魔改
+#
+########################################
+
+app.state.config.ENABLE_UPLOAD_IMAGE = ENABLE_UPLOAD_IMAGE
+app.state.config.ENABLE_ARTIFACTS_MODE = ENABLE_ARTIFACTS_MODE
 
 
 ########################################
@@ -1261,6 +1298,8 @@ async def get_app_config(request: Request):
             "enable_signup": app.state.config.ENABLE_SIGNUP,
             "enable_login_form": app.state.config.ENABLE_LOGIN_FORM,
             "enable_websocket": ENABLE_WEBSOCKET_SUPPORT,
+            "enable_upload_image": app.state.config.ENABLE_UPLOAD_IMAGE,
+            "enable_artifacts_mode": app.state.config.ENABLE_ARTIFACTS_MODE,
             **(
                 {
                     "enable_direct_connections": app.state.config.ENABLE_DIRECT_CONNECTIONS,
@@ -1322,7 +1361,7 @@ async def get_app_config(request: Request):
             if user is not None
             else {}
         ),
-        **(app.state.MCP_CONFIG.to_app_config() if app.state.MCP_CONFIG else {})
+        **(app.state.MCP_CONFIG.to_app_config() if app.state.MCP_CONFIG else {}),
     }
 
 

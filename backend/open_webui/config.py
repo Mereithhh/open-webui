@@ -299,6 +299,21 @@ class AppConfig:
 
         return self._state[key].value
 
+####################################
+# 魔改特化
+####################################
+
+ENABLE_UPLOAD_IMAGE = PersistentConfig(
+    "ENABLE_UPLOAD_IMAGE",
+    "fg.upload_image.enable",
+    os.environ.get("ENABLE_UPLOAD_IMAGE", "False").lower() == "true",
+)
+
+ENABLE_ARTIFACTS_MODE = PersistentConfig(
+    "ENABLE_ARTIFACTS_MODE",
+    "fg.artifacts_mode.enable",
+    os.environ.get("ENABLE_ARTIFACTS_MODE", "True").lower() == "true",
+)
 
 ####################################
 # WEBUI_AUTH (Required for security)
